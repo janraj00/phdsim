@@ -1,0 +1,12 @@
+{
+  "data": "D:\\Doktorat\\Platforma\\data\\pst900",
+  "manifest": "D:\\Doktorat\\Platforma\\data\\pst900\\segmentation\\manifest.json",
+  "rgb_weights": "D:\\Doktorat\\Platforma\\models\\pstnet_authors\\pstnet\\model_best.pth",
+  "fusion_weights": "D:\\Doktorat\\Platforma\\models\\pstnet_authors\\pstnet_thermal\\model_best.pth",
+  "cache": "D:\\Doktorat\\Platforma\\cache\\pstnet\\counterfactuals.json",
+  "experiment_output": "runs/pstnet_acquisition",
+  "replay_output": "runs/pstnet_acquisition/gated_replay.json",
+  "device": "cpu",
+  "threads": 6,
+  "costs": [0.0, 0.001, 0.005, 0.01, 0.02]
+}

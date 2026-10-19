@@ -1,0 +1,8 @@
+{
+  "fusion": {"method": "mean_probability"},
+  "decisions": [
+    {"method": "no_acquisition"},
+    {"method": "always_acquire"},
+    {"method": "uncertainty_threshold", "threshold": 0.85}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "epochs": 5,
+  "train_frames": 48,
+  "validation_frames": 24,
+  "seed": 42,
+  "cpu_threads": 6,
+  "encoder_learning_rate": 0.0001,
+  "decoder_learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "gradient_clip": 5.0,
+  "validation_families": ["bag1", "bag7", "bag11"],
+  "acquisition_families": ["bag4", "bag5", "bag6", "bag8", "bag12", "bag17"]
+}

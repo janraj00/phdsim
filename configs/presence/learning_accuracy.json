@@ -1,0 +1,12 @@
+{
+  "gain_metric": "classification_error",
+  "seed": 42,
+  "meta_fraction": 0.3,
+  "fusion_regularization": 10.0,
+  "gain_regularizations": [1.0, 10.0, 100.0],
+  "transfer_penalties": [0.0, 0.01, 0.03, 0.06],
+  "megabyte_penalty": 0.0,
+  "entropy_thresholds": [0.5, 0.75, 0.85, 0.95, 1.0],
+  "random_probabilities": [0.25, 0.5, 0.75],
+  "random_seeds": [17, 42, 97]
+}

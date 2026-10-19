@@ -1,0 +1,8 @@
+{
+  "split": "test",
+  "mode": "partition",
+  "agents": [
+    {"agent_id": "rgb-01", "modality": "rgb", "limit": 400},
+    {"agent_id": "thermal-01", "modality": "thermal", "limit": 400}
+  ]
+}

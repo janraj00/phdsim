@@ -1,0 +1,14 @@
+{
+  "pstnet.py": {
+    "upstream_path": "pstnet/data/architectures/pstnet/pstnet.py",
+    "sha256": "ee93c9eb1becb6a77210a065fc07d89187983ff8924d82ace36caadcce1d5287"
+  },
+  "pstnet_thermal.py": {
+    "upstream_path": "pstnet/data/architectures/pstnet_thermal/pstnet_thermal.py",
+    "sha256": "cedf664e9e02786f557c97b78b535c3f17b2fa9960fba2e36849fb9d53450c99"
+  },
+  "eval_iou.py": {
+    "upstream_path": "pstnet/code/eval_iou.py",
+    "sha256": "6288a06bbd801e722077c3ab7a1967933c19e86dc668453e802d675bd1ea9845"
+  }
+}

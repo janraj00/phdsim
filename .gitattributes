@@ -1,0 +1,5 @@
+# Keep source checkouts consistent across Windows and Linux.
+* text=auto eol=lf
+
+# These attributed upstream references have published byte-level fingerprints.
+third_party/pst900/reference/*.py -text

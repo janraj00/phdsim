@@ -1,0 +1,15 @@
+{
+  "architecture": "resnet18",
+  "weights": "IMAGENET1K_V1",
+  "image_height": 216,
+  "image_width": 384,
+  "epochs": 6,
+  "batch_size": 8,
+  "learning_rate": 0.0001,
+  "head_learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "seed": 42,
+  "cpu_threads": 6,
+  "trainable": "layer4_and_head",
+  "torch_cache": "D:/Doktorat/Platforma/cache/torch"
+}
