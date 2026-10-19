@@ -33,6 +33,19 @@ PyTorch 2.14.1+cpu, torchvision 0.29.1+cpu, OpenCV 4.13.0.92, Matplotlib 3.11.2,
 DuckDB 1.5.6 and py7zr 1.1.4. These are observed versions, not a cross-platform
 lockfile. GPU environments need a suitable PyTorch/CUDA installation.
 
+### Continue the research conversation
+
+Open the cloned project in Codex. The root `AGENTS.md` points to
+[the research handoff](CONTEXT.md), which records the latest decisions and verified
+state. The [conversation archive](CHAT_HISTORY_2026-10-19.md) retains the recorded
+user/assistant text for historical reference. It is a Markdown export, not a
+restoration of the original chat as a native resumable app session. Binary
+attachments, tool logs and internal application state are not embedded.
+
+Start with: "Read AGENTS.md and docs/CONTEXT.md, check the available environment
+and data, and continue from the agreed next step." This supplies context without
+depending on the old computer's app history.
+
 ## 2. Copy the research files separately
 
 Copy the following directories using an external drive, a private storage share,

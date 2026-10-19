@@ -144,6 +144,7 @@ its preparation is described in the training guide.
 
 ## Documentation and artifacts
 
+- [Research context and latest decisions for continuing in a new Codex chat](docs/CONTEXT.md)
 - [Computer migration: clone, environment, datasets, models and reports](docs/MIGRATION.md)
 - [Architecture and module responsibilities](docs/ARCHITECTURE.md)
 - [Step-by-step simulation walkthrough and domain type map](docs/WALKTHROUGH.md)
