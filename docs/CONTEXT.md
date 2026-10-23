@@ -1,6 +1,6 @@
 # PHDSIM research handoff
 
-Updated: **2026-10-19**. This document summarizes the latest decisions in the
+Updated: **2026-10-23**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
@@ -80,8 +80,20 @@ The intended order agreed with the user is:
 
 Selective communication already has prior work, including methods in the
 authors' benchmark. Do not claim novelty without a relevant literature comparison.
-No particular trained UrbanIng model or final modality combination has been
-selected, reproduced or evaluated in this repository.
+The user selected the authors' released **LiDAR CoBEVT SIS_1_2_vs_3** checkpoint
+for stage 1. A pinned external-model adapter and offline comparison runner are
+implemented: ego, ego + vehicle, ego + bundled infrastructure, all sources,
+random-one-peer and an optional ego-entropy gate. All actions share fixed
+all-source GT. The original multi-sensor native catalog remains separate.
+The released model groups roadside sensors into one infrastructure-site input;
+this is not sensor-level acquisition or RGB/thermal fusion.
+See [stage 1 protocol and commands](URBANING_STAGE1.md).
+
+Model archive integrity and strict checkpoint compatibility have been checked.
+CPU tests use synthetic voxels and known boxes; no real-data CoBEVT evaluation,
+full held-out benchmark or online acquisition run has completed. The current
+execution environment is a remote Linux CPU session, not the user's MacBook,
+and has neither their native sequence nor an available GPU.
 
 One real sequence, `20241126_0017_crossing1_00`, release 1.0 of
 `doi:10.7910/DVN/A9LPY7`, was downloaded, hash-verified, extracted and cataloged:
@@ -119,9 +131,11 @@ links and timestamp precision were checked. Geometry roundtrip checks establish
 matrix consistency, not independent physical calibration accuracy. Image and
 point-cloud previews show source data and ground truth, not learned predictions.
 
-See [UrbanIng implementation and commands](URBANING.md). No UrbanIng detector,
-learned fusion, acquisition policy, online replay or task-quality result exists
-yet. No agent assignment has been performed for this dataset.
+See [UrbanIng import and inspection](URBANING.md) and the separate
+[CoBEVT stage 1 adapter](URBANING_STAGE1.md). No real-data detection-quality result
+or online replay has completed. No general simulator agent assignment has been
+performed for this dataset; the model adapter follows the official three-source
+vehicle/site grouping only.
 
 ## PST900: implemented earlier research, retained separately
 

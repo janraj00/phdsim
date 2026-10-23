@@ -15,6 +15,7 @@ cnn = ["torch==2.14.1", "torchvision==0.29.1"]
 pstnet = ["torch==2.14.1", "torchvision==0.29.1", "opencv-python-headless==4.13.0.92"]
 pstnet-training = ["torch==2.14.1", "torchvision==0.29.1", "opencv-python-headless==4.13.0.92", "matplotlib>=3.9,<4"]
 urbaning = ["py7zr>=1.0,<2", "duckdb>=1.4,<2", "opencv-python-headless==4.13.0.92", "matplotlib>=3.9,<4"]
+urbaning-stage1 = ["py7zr>=1.0,<2", "PyYAML>=6,<7"]
 
 [project.scripts]
 phdsim = "phdsim.cli:main"

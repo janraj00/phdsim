@@ -15,7 +15,7 @@ def main(argv=None):
         return presence_main(arguments)
     parser = ArgumentParser(prog='phdsim', description='Selective acquisition of existing peer observations.')
     parser.add_argument('workflow', choices=('pstnet', 'presence', 'urbaning'),
-                        help='pstnet: segmentation; presence: classification; urbaning: source inspection')
+                        help='pstnet: segmentation; presence: classification; urbaning: source preparation and CoBEVT')
     parser.add_argument('arguments', nargs=REMAINDER, help='Workflow arguments; use <workflow> --help')
     parsed = parser.parse_args(arguments)
     if parsed.workflow == 'pstnet':

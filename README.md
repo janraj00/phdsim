@@ -6,9 +6,9 @@ observations from another agent. Perception, fusion and acquisition decisions ar
 separate modules.
 
 The implemented neural task is **five-class RGB/thermal semantic segmentation on
-PST900**. **UrbanIng-V2X** now has a real-sequence importer and inspection catalog;
-cooperative 3D detection, fusion and acquisition on this dataset are the next
-research stage. The earlier whole-frame Survivor-presence experiment remains
+PST900**. **UrbanIng-V2X** has a real-sequence importer, inspection catalog and a
+[frozen CoBEVT offline acquisition runner](docs/URBANING_STAGE1.md); real-data
+evaluation of that runner is pending. The earlier whole-frame Survivor-presence experiment remains
 available as a separate baseline.
 
 The agreed target model is **agent -> sensors[] -> timestamped observations**.
@@ -48,6 +48,10 @@ path settings and verification commands. Recreate `.venv` instead of copying it.
 - One UrbanIng-V2X sequence is downloaded and cataloged: 12 RGB, 6 thermal and 6
   LiDAR streams, plus two auxiliary navigation streams. Source timing, geometry,
   annotations and inspection previews are preserved; no detector has been trained.
+- The official UrbanIng LiDAR CoBEVT checkpoint is pinned with integrity checks.
+  Stage 1 compares ego, individual partners, full fusion and offline acquisition
+  baselines with shared ground truth. CPU contract tests do not establish
+  real-data detection accuracy; the GPU experiment is still pending.
 
 These pilot results are not the published benchmark result. See
 [experiment status and protocol](docs/EXPERIMENTS.md).
