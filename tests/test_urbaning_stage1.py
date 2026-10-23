@@ -20,7 +20,8 @@ class AcquisitionTests(unittest.TestCase):
             native.mkdir(parents=True)
             (native / 'extraction.json').write_text(json.dumps({'sequence_relative_path': '.'}))
             (native / 'calibration.json').write_text('{}')
-            (native / 'timesync_info.csv').write_text(',0\ntimestamp_ms,1732620000001\nvehicle1_middle_lidar,1732620000010\n')
+            original_sync = ',0,1\ntimestamp_ms,1732620000001,1732620000101\nvehicle1_middle_lidar,1732620000010,1732620000110\n'
+            (native / 'timesync_info.csv').write_text(original_sync)
             (root / 'raw' / 'labels').mkdir(parents=True)
             (root / 'source').mkdir()
             files = []
@@ -35,6 +36,15 @@ class AcquisitionTests(unittest.TestCase):
             self.assertEqual(association['timestamp_ns'], 1732620000001000000)
             self.assertEqual(association['members']['vehicle1_middle_lidar'], '1732620000010')
             self.assertEqual((view / 'dataset' / DEFAULT_SEQUENCE).resolve(), native)
+            limited = create_source_view(root, DEFAULT_SEQUENCE, root / 'limited', max_frames=1)
+            limited_record = json.loads((limited / 'phdsim-conversion.json').read_text())
+            self.assertEqual(list(limited_record['sync_by_frame']), ['000000'])
+            self.assertEqual((native / 'timesync_info.csv').read_text(), original_sync)
+            self.assertNotEqual(limited_record['timesync_sha256'], limited_record['view_timesync_sha256'])
+            later = create_source_view(root, DEFAULT_SEQUENCE, root / 'later', max_frames=1, start_frame=1)
+            later_record = json.loads((later / 'phdsim-conversion.json').read_text())
+            self.assertEqual(list(later_record['sync_by_frame']), ['000001'])
+            self.assertEqual(later_record['sync_by_frame']['000001']['timestamp_ns'], 1732620000101000000)
             with self.assertRaises(FileExistsError):
                 create_source_view(root, DEFAULT_SEQUENCE, view)
             (root / 'raw' / 'labels_av_track_ids.json').write_text('changed')

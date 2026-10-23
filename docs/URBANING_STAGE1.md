@@ -1,7 +1,8 @@
 # UrbanIng stage 1: frozen LiDAR acquisition baseline
 
-Status: **implemented runner and CPU contract tests; real-data GPU evaluation
-pending**. No UrbanIng AP result from this project is claimed here.
+Status: **implemented runner, passing CPU contract tests and real-data CPU smoke
+evaluation**. Full held-out benchmark evaluation remains pending. Results and
+their scope are recorded in [experiment status](EXPERIMENTS.md).
 
 The experiment uses the authors' [CoBEVT release v1.0.0](https://github.com/thi-ad/UrbanIng-V2X/releases/tag/v1.0.0),
 `CoBEVT_SIS_1_2_vs_3`, and an external [upstream checkout](https://github.com/thi-ad/UrbanIng-V2X)
@@ -86,10 +87,15 @@ or a remote GPU node:
 phdsim urbaning fetch --root data/urbaning-v2x --sequence 20241126_0017_crossing1_00
 phdsim urbaning extract --root data/urbaning-v2x --sequence 20241126_0017_crossing1_00
 phdsim urbaning opencood-view --root data/urbaning-v2x \
-  --sequence 20241126_0017_crossing1_00 --output data/urbaning-converter-input
+  --sequence 20241126_0017_crossing1_00 --start-frame 100 --max-frames 10 \
+  --output data/urbaning-converter-input
 ```
 
 The view uses symlinks to immutable native files, with verified label metadata.
+With a frame limit/offset, only a derived synchronization CSV is written; original
+column identities and source bytes remain intact. Omit both options for the full
+sequence. For this recording, the beginning has the other vehicle outside 70m;
+the middle fragment is useful for exercising all three inputs.
 It preserves the source manifest, calibration hash and exact synchronization
 associations, including integer nanosecond anchors. Native LiDAR per-point times
 remain in the original payloads. Converted OpenCOOD frame IDs are **indices**,
@@ -109,9 +115,23 @@ It also converts camera files; these are not inputs to the LiDAR model. Source
 and conversion output remain separate. A failed conversion is retained for
 inspection and requires a new output directory on retry.
 
-## Run on the GPU environment
+## Run on CPU or GPU
 
-Use a **separate Linux OpenCOOD environment**, with a PyTorch/CUDA build compatible
+A Linux x86_64 CPU environment is also supported explicitly. For a fresh Python
+3.12 environment, the direct dependencies used here are recorded in
+`requirements/urbaning-stage1-cpu.txt`:
+
+```bash
+python -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cpu
+python -m pip install -r requirements/urbaning-stage1-cpu.txt
+```
+
+The manifest is a direct-dependency profile, not a full transitive lock or a
+verified macOS/Apple Silicon installation. The upstream SDK conversion and model
+runtime can share this CPU environment. GPU execution uses `--device cuda`
+(the default) and still needs a compatible CUDA PyTorch build.
+
+For GPU runs, use a **separate Linux OpenCOOD environment**, with a PyTorch/CUDA build compatible
 with the actual GPU, `spconv`/`cumm`, Open3D, OpenCV, NumPy, SciPy, Shapely, PyYAML,
 einops and the compiled upstream `box_overlaps` extension. The authors document
 Python 3.9 / PyTorch 1.12 / CUDA 11.3, but their requirements contain conflicting
@@ -120,26 +140,29 @@ those requirements into phdsim's PSTNet environment. No GPU environment has been
 built or validated by this implementation session.
 
 Build the Cython extension from the external checkout's `opencood` project directory
-with `python opencood/utils/setup.py build_ext --inplace`. This particular detection
-path uses CPU polygon NMS and CPU spconv voxelization; the runner requires CUDA
-for model execution as an explicit initial deployment choice. A CPU/MPS port of
-the complete data pipeline is not validated. The core frozen model itself is
-covered by the CPU synthetic test below.
+with `python opencood/utils/setup.py build_ext --inplace`. Use `CC=gcc CXX=g++`
+when the interpreter's configured compiler is unavailable. Cython regenerates the
+tracked `opencood/opencood/utils/box_overlaps.c`; after the build, restore that
+generated C file from the pinned commit, keeping the built extension. This
+preserves the tracked-source check. No hand changes to the upstream `.pyx` are needed.
+This detection path uses CPU polygon NMS and CPU spconv voxelization. Apple MPS
+and native macOS dependency installation remain unvalidated.
 
-With the GPU environment active, run from the phdsim repository root:
+With the chosen environment active, run from the phdsim repository root.
+For a CPU smoke test:
 
 ```bash
-python scripts/urbaning_stage1.py doctor --upstream external/UrbanIng-V2X
+python scripts/urbaning_stage1.py doctor --upstream external/UrbanIng-V2X --device cpu
 python scripts/urbaning_stage1.py run --upstream external/UrbanIng-V2X \
   --data-root data/urbaning-opencood-smoke --sequence 20241126_0017_crossing1_00 \
   --purpose smoke --max-frames 10 --ego-id 100000 --seed 42 \
-  --entropy-threshold 0.5 --output runs/urbaning-stage1-smoke-001
+  --device cpu --cpu-threads 2 --entropy-threshold 0.5 --output runs/urbaning-stage1-smoke-001
 ```
 
 The threshold 0.5 is a fixed diagnostic example, **not a tuned recommendation**.
 Omit it to run only reference variants and random-one-peer. `doctor` returns exit
-code 2 until dependencies, source pin, model and CUDA are ready. No silent CPU or
-MPS fallback is used. Each run refuses to overwrite an existing output directory.
+code 2 until dependencies, source pin, model and the requested device are ready.
+No silent device fallback is used. Each run refuses to overwrite an existing output directory.
 
 Outputs:
 
@@ -173,8 +196,9 @@ PYTHONPATH=src python -m unittest discover -s tests -p test_urbaning_cobevt_inte
 The opt-in integration test needs CPU PyTorch, einops, Shapely, NumPy and PyYAML.
 It loads all **9,736,008** model parameters strictly, runs synthetic inputs through
 the full released architecture at its native BEV size for all four source
-subsets, and checks the upstream AP adapter on known boxes. It does not substitute
-for real-data conversion, GPU execution or detection-quality evaluation.
+subsets, and checks the upstream AP adapter on known boxes. It complements the
+small real-data CPU smoke evaluation; it does not establish full-benchmark
+detection quality or validate GPU execution.
 
 No upstream implementation or model binary is redistributed in Git. The external
 repository includes OpenCOOD files with their own license notices; preserve them.

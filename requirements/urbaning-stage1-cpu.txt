@@ -1,0 +1,22 @@
+# Direct dependencies used for the Linux x86_64 / Python 3.12 smoke run.
+# Install torch==2.6.0 separately from the official CPU wheel index.
+# This is a tested direct-dependency profile, not a complete transitive lock.
+numpy==1.26.4
+spconv==2.3.8
+cumm==0.7.11
+einops==0.8.2
+shapely==2.2.0
+PyYAML==6.0.3
+open3d==0.20.0
+opencv-python-headless==4.11.0.86
+Cython==3.3.0
+scipy==1.17.0
+pandas==2.2.3
+matplotlib==3.10.8
+tqdm==4.70.1
+numba==0.68.0
+pyquaternion==0.9.9
+lanelet2==1.2.3
+pyproj==3.8.0
+pyDataverse==0.3.5
+httpx==0.28.1

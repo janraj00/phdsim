@@ -7,8 +7,8 @@ separate modules.
 
 The implemented neural task is **five-class RGB/thermal semantic segmentation on
 PST900**. **UrbanIng-V2X** has a real-sequence importer, inspection catalog and a
-[frozen CoBEVT offline acquisition runner](docs/URBANING_STAGE1.md); real-data
-evaluation of that runner is pending. The earlier whole-frame Survivor-presence experiment remains
+[frozen CoBEVT offline acquisition runner](docs/URBANING_STAGE1.md), exercised on
+a small real-data CPU smoke run. Full held-out evaluation is pending. The earlier whole-frame Survivor-presence experiment remains
 available as a separate baseline.
 
 The agreed target model is **agent -> sensors[] -> timestamped observations**.
@@ -50,8 +50,8 @@ path settings and verification commands. Recreate `.venv` instead of copying it.
   annotations and inspection previews are preserved; no detector has been trained.
 - The official UrbanIng LiDAR CoBEVT checkpoint is pinned with integrity checks.
   Stage 1 compares ego, individual partners, full fusion and offline acquisition
-  baselines with shared ground truth. CPU contract tests do not establish
-  real-data detection accuracy; the GPU experiment is still pending.
+  baselines with shared ground truth. Synthetic contract tests and a small
+  real-data CPU smoke evaluation passed; full benchmark and GPU runs are pending.
 
 These pilot results are not the published benchmark result. See
 [experiment status and protocol](docs/EXPERIMENTS.md).

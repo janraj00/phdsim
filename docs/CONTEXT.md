@@ -90,10 +90,13 @@ this is not sensor-level acquisition or RGB/thermal fusion.
 See [stage 1 protocol and commands](URBANING_STAGE1.md).
 
 Model archive integrity and strict checkpoint compatibility have been checked.
-CPU tests use synthetic voxels and known boxes; no real-data CoBEVT evaluation,
-full held-out benchmark or online acquisition run has completed. The current
-execution environment is a remote Linux CPU session, not the user's MacBook,
-and has neither their native sequence nor an available GPU.
+CPU tests use synthetic voxels and known boxes. A real-data CPU smoke evaluation
+also completed on 20 frames (1–10 and 101–110 of the prepared crossing1 sequence);
+see [experiment status](EXPERIMENTS.md). The full held-out benchmark
+and online acquisition remain pending. The execution environment is a remote
+Linux CPU session, not the user's MacBook. One native sequence was downloaded and
+verified again there; no GPU or PLGrid session is available. The complete CPU
+path works on Linux; native macOS/Apple Silicon dependency installation is not validated.
 
 One real sequence, `20241126_0017_crossing1_00`, release 1.0 of
 `doi:10.7910/DVN/A9LPY7`, was downloaded, hash-verified, extracted and cataloged:
@@ -132,8 +135,8 @@ matrix consistency, not independent physical calibration accuracy. Image and
 point-cloud previews show source data and ground truth, not learned predictions.
 
 See [UrbanIng import and inspection](URBANING.md) and the separate
-[CoBEVT stage 1 adapter](URBANING_STAGE1.md). No real-data detection-quality result
-or online replay has completed. No general simulator agent assignment has been
+[CoBEVT stage 1 adapter](URBANING_STAGE1.md). A diagnostic real-data CPU result is
+available; full held-out evaluation and online replay are pending. No general simulator agent assignment has been
 performed for this dataset; the model adapter follows the official three-source
 vehicle/site grouping only.
 

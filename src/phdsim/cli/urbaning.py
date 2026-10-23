@@ -19,6 +19,8 @@ def main(argv=None):
     parser.add_argument('--sequence', default=DEFAULT_SEQUENCE)
     parser.add_argument('--output', default='runs/urbaning_inspection')
     parser.add_argument('--frame', type=int, default=100)
+    parser.add_argument('--max-frames', type=int, help='Optional conversion-source view limit')
+    parser.add_argument('--start-frame', type=int, default=0, help='Conversion-source frame offset')
     args = parser.parse_args(arguments)
     if args.action == 'fetch':
         from phdsim.datasets.urbaning.source import fetch_sequence
@@ -29,7 +31,7 @@ def main(argv=None):
         print(extract_sequence(args.root, args.sequence))
     elif args.action == 'opencood-view':
         from phdsim.datasets.urbaning.opencood import create_source_view
-        print(create_source_view(args.root, args.sequence, args.output))
+        print(create_source_view(args.root, args.sequence, args.output, args.max_frames, args.start_frame))
     else:
         from phdsim.datasets.urbaning.inspection import inspect_sequence
         print(inspect_sequence(args.root, args.sequence, args.output, args.frame))

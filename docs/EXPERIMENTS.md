@@ -71,11 +71,57 @@ Report global class IoU together with image pulls, transferred bytes and measure
 runtime. Keep original-checkpoint reproduction separate from own retraining and
 from historical binary classification results.
 
+## UrbanIng CoBEVT CPU smoke evaluation — 2026-10-23
+
+The frozen official `CoBEVT_SIS_1_2_vs_3` checkpoint completed real-data offline
+evaluation on 20 frames of `20241126_0017_crossing1_00`, with vehicle `100000` as
+ego. The native release 1.0 sequence was downloaded and verified; the unchanged
+official converter processed two bounded source views. Execution used Linux
+x86_64, Python 3.12.14, CPU PyTorch 2.6.0 and two model threads. The model was not
+retrained. See [protocol, dependencies and commands](URBANING_STAGE1.md).
+
+Frames 1–10 contain only ego and infrastructure within the upstream 70m range.
+Vehicle-class AP at BEV IoU 0.5 was **43.16%** for ego and **91.99%** with
+infrastructure. There were no annotated 2Wheelers in this window, so four-class
+macro AP is undefined and reported as null.
+
+Frames 101–110 have all three sources available. Each row below uses the same
+ground truth: 726 Vehicle, 31 Heavy_Vehicle, 19 2Wheeler and 100 Pedestrian
+object annotations across frames. These are not counts of distinct tracks.
+
+| Variant | BEV mAP @ IoU 0.5, four classes | Vehicle AP @ IoU 0.5 | Peer requests/frame |
+|---|---:|---:|---:|
+| Ego | 24.76% | 56.77% | 0 |
+| Ego + vehicle | 36.14% | 73.88% | 1 |
+| Ego + infrastructure | 47.53% | 81.16% | 1 |
+| All sources | 53.21% | 90.81% | 2 |
+| Random one peer | 42.04% | 77.20% | 1 |
+| Entropy gate, threshold 0.5 | 42.04% | 77.20% | 1 |
+
+The example entropy threshold requested one peer in every evaluated frame;
+its outcome therefore equals random-one-peer here. This is **not evidence of an
+effective adaptive stopping policy**. In the middle window, choosing one partner
+halves request count relative to all sources, but no byte or latency saving was
+measured. 2Wheeler AP remains weak even with cooperation.
+
+These are **diagnostic results on one crossing1 recording**, not a held-out
+benchmark, significance test or paper reproduction. The checkpoint's held-out
+crossing is crossing3, which was not used. Threshold calibration, matched-budget
+controls, recording-level evaluation, both ego vehicles, full test aggregation,
+GPU execution and online replay remain follow-up work.
+
+Local artifacts: `runs/urbaning-stage1-cpu-smoke-001/` and
+`runs/urbaning-stage1-cpu-mid10-001/`. Each has configuration/provenance, native
+associations, source hashes, per-action predictions, shared GT and metrics.
+Raw data, model weights and run artifacts remain outside Git.
+
 ## Local run ledger
 
 | Directory under `runs/` | Purpose |
 |---|---|
 | `pstnet_rgb_pilot/` | Own RGB segmentation pilot |
+| `urbaning-stage1-cpu-smoke-001/` | Frozen CoBEVT, crossing1 frames 1–10, CPU |
+| `urbaning-stage1-cpu-mid10-001/` | Frozen CoBEVT, crossing1 frames 101–110, CPU |
 | `pstnet_reproduction/` | Upstream parity checks, full dataset audit and checkpoint availability |
 | `pst900/` | Initial presence baseline and image audit |
 | `pst900_cnn/` | Independent binary RGB/thermal CNN classifiers |

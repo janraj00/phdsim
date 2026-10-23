@@ -36,8 +36,8 @@ def prepare_upstream(directory):
     return revision
 
 
-def doctor(upstream, model_dir):
-    report = {'ready': False, 'python': sys.version, 'errors': []}
+def doctor(upstream, model_dir, device='cuda'):
+    report = {'ready': False, 'python': sys.version, 'requested_device': device, 'errors': []}
     report['packages'] = {}
     for package in ('numpy', 'torch', 'spconv', 'spconv-cu113', 'spconv-cu120', 'cumm',
                     'einops', 'PyYAML', 'shapely', 'open3d'):
@@ -57,9 +57,9 @@ def doctor(upstream, model_dir):
         import torch
         report.update(torch=torch.__version__, cuda=torch.version.cuda,
                       cuda_available=torch.cuda.is_available())
-        if not torch.cuda.is_available():
-            report['errors'].append('CUDA GPU unavailable; this runner does not silently fall back to CPU/MPS')
-        else:
+        if device == 'cuda' and not torch.cuda.is_available():
+            report['errors'].append('CUDA GPU unavailable; explicitly select --device cpu for a CPU smoke run')
+        elif device == 'cuda':
             report['gpu'] = torch.cuda.get_device_name(0)
         for name in ('spconv', 'opencood.data_utils.datasets', 'opencood.utils.eval_utils'):
             try:
@@ -144,7 +144,7 @@ def run(args):
     output = Path(args.output).resolve()
     if output.exists():
         raise FileExistsError('Use a new output directory: ' + str(output))
-    environment = doctor(args.upstream, args.model_dir)
+    environment = doctor(args.upstream, args.model_dir, args.device)
     if not environment['ready']:
         raise RuntimeError(json.dumps(environment, indent=2))
     from opencood.data_utils.datasets import build_dataset
@@ -154,10 +154,15 @@ def run(args):
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
+    if args.device == 'cuda':
+        torch.cuda.manual_seed_all(args.seed)
+    else:
+        if args.cpu_threads < 1:
+            raise ValueError('CPU threads must be positive')
+        torch.set_num_threads(args.cpu_threads)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    device = torch.device('cuda:0')
+    device = torch.device('cuda:0' if args.device == 'cuda' else 'cpu')
     model, config = load_model(args.model_dir, device)
     config['validate_dir'] = str(Path(args.data_root).resolve())
     config['train_params']['specific_ego_id'] = args.ego_id
@@ -210,10 +215,12 @@ def run(args):
                 for name, indices in actions.items():
                     if indices not in predictions:
                         inputs = subset_inputs(batch['ego'], indices)
-                        torch.cuda.synchronize()
+                        if args.device == 'cuda':
+                            torch.cuda.synchronize()
                         started = time.perf_counter()
                         result = model(inputs)
-                        torch.cuda.synchronize()
+                        if args.device == 'cuda':
+                            torch.cuda.synchronize()
                         elapsed = 1000 * (time.perf_counter() - started)
                         if not all(bool(value.isfinite().all()) for value in result.values()):
                             raise ValueError('Non-finite model output for ' + name)
@@ -278,11 +285,12 @@ def main(argv=None):
     fetch = subparsers.add_parser('fetch', help='Fetch/verify the pinned official model bundle')
     fetch.add_argument('--model-dir', default='models/urbaning/CoBEVT_SIS_1_2_vs_3')
     fetch.add_argument('--archive', help='Use an existing archive instead of downloading')
-    check = subparsers.add_parser('doctor', help='Report source/model/dependency/CUDA readiness')
+    check = subparsers.add_parser('doctor', help='Report source/model/dependency/device readiness')
     execute = subparsers.add_parser('run', help='Run a paired offline comparison on one sequence')
     for command in (check, execute):
         command.add_argument('--upstream', required=True)
         command.add_argument('--model-dir', default='models/urbaning/CoBEVT_SIS_1_2_vs_3')
+        command.add_argument('--device', choices=('cuda', 'cpu'), default='cuda')
     execute.add_argument('--data-root', required=True, help='Converted OpenCOOD root containing sequence directories')
     execute.add_argument('--sequence', required=True)
     execute.add_argument('--purpose', choices=('smoke', 'evaluation'), default='smoke')
@@ -290,13 +298,14 @@ def main(argv=None):
     execute.add_argument('--start', type=int, default=0)
     execute.add_argument('--ego-id', type=int, choices=(100000, 200000), default=100000)
     execute.add_argument('--seed', type=int, default=42)
+    execute.add_argument('--cpu-threads', type=int, default=2)
     execute.add_argument('--entropy-threshold', type=float, help='Optional fixed ego entropy gate [0,1]; never tune on test')
     execute.add_argument('--output', required=True)
     args = parser.parse_args(argv)
     if args.command == 'fetch':
         value = fetch_bundle(args.model_dir, args.archive)
     elif args.command == 'doctor':
-        value = doctor(args.upstream, args.model_dir)
+        value = doctor(args.upstream, args.model_dir, args.device)
     else:
         value = run(args)
     print(json.dumps(value, indent=2))
