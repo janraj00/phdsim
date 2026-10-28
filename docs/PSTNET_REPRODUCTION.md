@@ -16,8 +16,8 @@ Tests compare RGB and fusion outputs bit for bit against unchanged upstream
 implementations with identical random weights. That establishes operation parity,
 not the published performance of trained models.
 
-An own RGB pilot has completed; see [experiment status](EXPERIMENTS.md). It uses
-ImageNet encoder initialization and our explicit optimizer settings. Own fusion
+An own RGB pilot has completed; see [PSTNet experiment status](PSTNET_EXPERIMENTS.md).
+It uses ImageNet encoder initialization and our explicit optimizer settings. Own fusion
 and segmentation acquisition have not yet been trained. Exact reproduction from
 the authors' checkpoints remains pending their availability.
 

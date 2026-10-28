@@ -2,7 +2,7 @@
 
 Status: **implemented runner, passing CPU contract tests and real-data CPU smoke
 evaluation**. Full held-out benchmark evaluation remains pending. Results and
-their scope are recorded in [experiment status](EXPERIMENTS.md).
+their scope are recorded in [UrbanIng experiment status](URBANING_EXPERIMENTS.md).
 
 The experiment uses the authors' [CoBEVT release v1.0.0](https://github.com/thi-ad/UrbanIng-V2X/releases/tag/v1.0.0),
 `CoBEVT_SIS_1_2_vs_3`, and an external [upstream checkout](https://github.com/thi-ad/UrbanIng-V2X)
@@ -13,14 +13,20 @@ frozen; no retraining or checkpoint conversion is required.
 
 ## Protocol
 
-| Variant | Inputs |
+For the completed pilot, Car1 (`100000`) performs the detection task,
+Car2 (`200000`) is the other vehicle, and Infra (`-1` at crossing1) is the
+bundled infrastructure site. These are platform names; `ego` remains the
+implementation's reference-agent role. Selecting Car2 as the reference agent
+would swap the vehicle roles, not rename the platforms. All inputs below are LiDAR.
+
+| Code action | Sources for the Car1 pilot |
 |---|---|
-| `ego` | Ego vehicle LiDAR |
-| `vehicle_peer` | Ego + other vehicle, if within upstream communication range |
-| `infrastructure` | Ego + the bundled infrastructure site, if available |
-| `all` | All available upstream sources |
-| `random_one_peer` | Ego + one uniformly selected available partner |
-| `entropy_gate` | Ego alone, or one partner when ego entropy exceeds a fixed threshold |
+| `ego` | Car1.LiDAR |
+| `vehicle_peer` | Car1.LiDAR + Car2.LiDAR, if Car2 is within communication range |
+| `infrastructure` | Car1.LiDAR + Infra.LiDAR, if available |
+| `all` | Car1.LiDAR + all available Car2/Infra inputs |
+| `random_one_peer` | Car1.LiDAR + one uniformly selected available partner |
+| `entropy_gate` | Car1.LiDAR alone, or one partner when Car1 entropy exceeds a fixed threshold |
 
 The official converter assigns vehicle IDs `100000`, `200000`, and infrastructure
 IDs `-1`, `-2`, `-3` for the three crossings. **A site merges its roadside LiDAR

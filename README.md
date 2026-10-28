@@ -5,11 +5,15 @@ An agent uses its available observations to decide whether to request additional
 observations from another agent. Perception, fusion and acquisition decisions are
 separate modules.
 
-The implemented neural task is **five-class RGB/thermal semantic segmentation on
-PST900**. **UrbanIng-V2X** has a real-sequence importer, inspection catalog and a
-[frozen CoBEVT offline acquisition runner](docs/URBANING_STAGE1.md), exercised on
-a small real-data CPU smoke run. Full held-out evaluation is pending. The earlier whole-frame Survivor-presence experiment remains
-available as a separate baseline.
+The current research focus is **LiDAR cooperative object detection and selective
+acquisition on UrbanIng-V2X**, using the authors' frozen CoBEVT checkpoint.
+A real-data CPU pilot is complete; full held-out evaluation is pending.
+See the [UrbanIng experiment status](docs/URBANING_EXPERIMENTS.md) and
+[stage 1 protocol](docs/URBANING_STAGE1.md).
+
+The earlier **PST900 / PSTNet RGB-thermal segmentation** study and whole-frame
+Survivor-presence baseline remain separate research tracks. Their data, models
+and metrics are described in the [experiment index](docs/EXPERIMENTS.md).
 
 The agreed target model is **agent -> sensors[] -> timestamped observations**.
 An agent may have multiple sensors and modalities. Vehicles are mobile agents;
@@ -19,7 +23,9 @@ still assigns one modality and at most one own observation per agent per tick.
 
 ## Set up on another computer
 
-Use Python 3.11+ and create a fresh environment in the cloned repository:
+For the main phdsim and PSTNet environment, use Python 3.11+ and create a fresh
+environment in the cloned repository. The UrbanIng CoBEVT runtime has separate
+[dependency and execution instructions](docs/URBANING_STAGE1.md#run-on-cpu-or-gpu):
 
 ```powershell
 python -m venv .venv
@@ -36,27 +42,30 @@ path settings and verification commands. Recreate `.venv` instead of copying it.
 
 ## Current status
 
-- Original PSTNet RGB and neural fusion architectures, preprocessing, and global
-  pixel-IoU evaluation are implemented and tested against the upstream code.
-- An own RGB pilot has completed: **48 training frames, 24 validation frames,
-  five epochs; 31.21% validation mIoU**, compared with 19.24% for background-only
-  prediction. Segmentation is still weak; hand-drill IoU is zero.
-- Own fusion training and learned acquisition experiments for PSTNet are pending.
-  Their inference and gate-learning code is implemented.
-- Exact reproduction with the authors' checkpoints remains pending: the official
-  checkpoint links checked on 2026-10-17 did not provide the files.
-- One UrbanIng-V2X sequence is downloaded and cataloged: 12 RGB, 6 thermal and 6
-  LiDAR streams, plus two auxiliary navigation streams. Source timing, geometry,
-  annotations and inspection previews are preserved; no detector has been trained.
-- The official UrbanIng LiDAR CoBEVT checkpoint is pinned with integrity checks.
-  Stage 1 compares ego, individual partners, full fusion and offline acquisition
-  baselines with shared ground truth. Synthetic contract tests and a small
-  real-data CPU smoke evaluation passed; full benchmark and GPU runs are pending.
+### UrbanIng-V2X: active detection study
 
-These pilot results are not the published benchmark result. See
-[experiment status and protocol](docs/EXPERIMENTS.md).
+- One native sequence has been imported and cataloged with sensor timing,
+  calibration and labels preserved.
+- The official LiDAR CoBEVT checkpoint is pinned and frozen. The runner compares
+  Car1, Car1 + Car2, Car1 + Infra, all sources and offline acquisition policies
+  using the same ground truth.
+- Two ten-frame CPU smoke windows completed. The example entropy gate requested
+  a partner on every frame, so effective adaptive stopping is not established.
+- Full held-out evaluation, GPU execution and native macOS setup remain pending.
+  See [UrbanIng measurements and limitations](docs/URBANING_EXPERIMENTS.md).
 
-## Data flow
+### PST900 / PSTNet: earlier segmentation study
+
+- RGB and neural RGB-thermal fusion architectures, preprocessing and global
+  pixel-IoU evaluation have upstream numerical parity tests.
+- An own RGB pilot used 48 training frames, 24 validation frames and five epochs:
+  **31.21% validation mIoU**, versus 19.24% for background-only prediction.
+  Segmentation remains weak; hand-drill IoU is zero.
+- Own fusion training and learned acquisition experiments remain pending.
+- The official author checkpoint links checked on 2026-10-17 did not provide
+  the files. See [PSTNet measurements and limitations](docs/PSTNET_EXPERIMENTS.md).
+
+## PSTNet segmentation data flow
 
 ```text
 source data -> observation pool -> agent/tick allocation
@@ -71,7 +80,7 @@ source data -> observation pool -> agent/tick allocation
                       RGB mask       original neural fusion
 ```
 
-The current PSTNet experiment uses paired RGB-to-thermal acquisition. The general
+The separate PSTNet experiment uses paired RGB-to-thermal acquisition. The general
 multi-agent allocator is exercised by the presence baseline. A policy receives
 local evidence and transfer metadata; reference masks and unrequested peer images
 are excluded. Offline teacher collection is separate from online replay.
@@ -81,13 +90,13 @@ are excluded. Offline teacher collection is separate from online replay.
 | Location | Purpose |
 |---|---|
 | `src/phdsim/datasets/` | Observations, allocation, PST900 conversion and UrbanIng import |
-| `src/phdsim/perception/` | Image processing, RGB segmentation and supervised training |
+| `src/phdsim/perception/` | RGB segmentation/training and the UrbanIng LiDAR model adapter |
 | `src/phdsim/fusion/` | One implementation per fusion method; PSTNet neural fusion |
 | `src/phdsim/decision/` | Acquisition contracts and separate policy implementations |
 | `src/phdsim/learning/` | Offline fusion and acquisition fitting |
 | `src/phdsim/runtime/` | Observation delivery and frozen-model execution |
 | `src/phdsim/experiments/` | Protocol orchestration, caches, comparisons and reports |
-| `src/phdsim/evaluation/` | Separate segmentation and presence metrics |
+| `src/phdsim/evaluation/` | Separate segmentation, detection and presence metrics |
 | `src/phdsim/models/` | Shared numerical estimators |
 | `src/phdsim/cli/` | Explicit `pstnet`, `presence` and `urbaning` workflows |
 | `configs/pstnet/`, `configs/presence/` | Task-specific settings |
@@ -142,8 +151,8 @@ phdsim presence --help
 phdsim urbaning --help
 ```
 
-The tested local stack uses PyTorch 2.14.1 CPU, torchvision 0.29.1, Pillow and
-OpenCV. The RGB trainer expects the checksum-verified ImageNet encoder cache;
+The PSTNet pilot's tested local stack uses PyTorch 2.14.1 CPU, torchvision 0.29.1,
+Pillow and OpenCV. The RGB trainer expects the checksum-verified ImageNet encoder cache;
 its preparation is described in the training guide.
 
 ## Documentation and artifacts
@@ -155,7 +164,9 @@ its preparation is described in the training guide.
 - [Data formats, file counts and the two preprocessing stages](docs/DATA.md)
 - [Dataset compatibility audit and proposed shared data/storage contract](docs/DATASET_AUDIT.md)
 - [UrbanIng-V2X real sequence import, catalog and geometry inspection](docs/URBANING.md)
-- [Experiment status, pilot interpretation and next research steps](docs/EXPERIMENTS.md)
+- [Experiment index: separate datasets, models, tasks and status](docs/EXPERIMENTS.md)
+- [UrbanIng CoBEVT measurements and next research steps](docs/URBANING_EXPERIMENTS.md)
+- [PST900 / PSTNet pilot measurements and pending work](docs/PSTNET_EXPERIMENTS.md)
 - [PSTNet reproduction and own RGB training](docs/PSTNET_REPRODUCTION.md)
 - [Historical presence baseline](docs/PRESENCE_BASELINE.md)
 - [Quality, computation and resource comparisons](docs/RESOURCES.md)
@@ -166,8 +177,10 @@ pilot is in `runs/pstnet_rgb_pilot/`; its weights are in
 `D:\Doktorat\Platforma\models\pstnet_rgb_pilot_v1`.
 Historical results and trained weights are retained during repository cleanup.
 
-Transfers currently count image pulls and stored PNG bytes. Movement, physical
-network transport, energy measurement and online policy updates are future work.
+PSTNet transfer accounting uses image pulls and stored PNG bytes. UrbanIng
+stage 1 counts requested peer bundles; byte and network-latency savings have not
+been measured. Movement, physical network transport, energy measurement and
+online policy updates remain future work.
 
 PSTNet-derived code retains the upstream GPL-3.0 license and attribution;
 see [the third-party notice](third_party/pst900/NOTICE.md).

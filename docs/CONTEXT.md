@@ -1,8 +1,17 @@
 # PHDSIM research handoff
 
-Updated: **2026-10-23**. This document summarizes the latest decisions in the
+Updated: **2026-10-28**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Research tracks and reporting
+
+[EXPERIMENTS.md](EXPERIMENTS.md) is an index only. Current UrbanIng LiDAR detection
+results live in [URBANING_EXPERIMENTS.md](URBANING_EXPERIMENTS.md); earlier PST900 /
+PSTNet segmentation results live in [PSTNET_EXPERIMENTS.md](PSTNET_EXPERIMENTS.md).
+Keep their models, splits, metrics and pending work distinct: pixel mIoU is not
+detection AP/mAP. Use Car1, Car2 and Infra in UrbanIng explanations and state
+which platform performs the detection task.
 
 ## Research objective
 
@@ -64,7 +73,7 @@ payloads retained as files/object-storage assets. New datasets are appended
 occasionally; experiments generally read stable snapshots. No central database
 server or Cyfronet deployment has been set up.
 
-## UrbanIng-V2X: prepared data, next experiment
+## UrbanIng-V2X: active detection and acquisition study
 
 The current research direction is cooperative **3D object detection**, followed
 by acquisition experiments on a working detector/fusion baseline. The dataset
@@ -82,9 +91,12 @@ Selective communication already has prior work, including methods in the
 authors' benchmark. Do not claim novelty without a relevant literature comparison.
 The user selected the authors' released **LiDAR CoBEVT SIS_1_2_vs_3** checkpoint
 for stage 1. A pinned external-model adapter and offline comparison runner are
-implemented: ego, ego + vehicle, ego + bundled infrastructure, all sources,
-random-one-peer and an optional ego-entropy gate. All actions share fixed
-all-source GT. The original multi-sensor native catalog remains separate.
+implemented: Car1, Car1 + Car2, Car1 + Infra, all sources, random-one-peer and
+an optional uncertainty gate based on Car1's predictions. Car1 (`100000`) and
+Car2 (`200000`) are platform identities; this pilot uses Car1 as the detector's
+reference agent. Infra (`-1` at crossing1) is the bundled infrastructure site.
+All actions share fixed all-source GT. The original multi-sensor native catalog
+remains separate.
 The released model groups roadside sensors into one infrastructure-site input;
 this is not sensor-level acquisition or RGB/thermal fusion.
 See [stage 1 protocol and commands](URBANING_STAGE1.md).
@@ -92,8 +104,8 @@ See [stage 1 protocol and commands](URBANING_STAGE1.md).
 Model archive integrity and strict checkpoint compatibility have been checked.
 CPU tests use synthetic voxels and known boxes. A real-data CPU smoke evaluation
 also completed on 20 frames (1–10 and 101–110 of the prepared crossing1 sequence);
-see [experiment status](EXPERIMENTS.md). The full held-out benchmark
-and online acquisition remain pending. The execution environment is a remote
+see [UrbanIng experiment status](URBANING_EXPERIMENTS.md). The full held-out
+benchmark and online acquisition remain pending. The execution environment is a remote
 Linux CPU session, not the user's MacBook. One native sequence was downloaded and
 verified again there; no GPU or PLGrid session is available. The complete CPU
 path works on Linux; native macOS/Apple Silicon dependency installation is not validated.
@@ -163,7 +175,8 @@ counterfactual gains are offline targets, not runtime policy inputs.
 Training, validation, acquisition learning and final testing must remain
 separate. Keep related recordings together, and account for the fact that the
 older presence test subset was inspected during development. See
-[experiment status](EXPERIMENTS.md), [PSTNet guide](PSTNET_REPRODUCTION.md) and
+[PSTNet experiment status](PSTNET_EXPERIMENTS.md),
+[PSTNet guide](PSTNET_REPRODUCTION.md) and
 [presence baseline](PRESENCE_BASELINE.md).
 
 ## Repository and machine handoff
