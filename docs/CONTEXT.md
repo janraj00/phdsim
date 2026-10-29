@@ -1,8 +1,17 @@
 # PHDSIM research handoff
 
-Updated: **2026-10-19**. This document summarizes the latest decisions in the
+Updated: **2026-10-29**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Research tracks and reporting
+
+[EXPERIMENTS.md](EXPERIMENTS.md) is an index only. Current UrbanIng LiDAR detection
+results live in [URBANING_EXPERIMENTS.md](URBANING_EXPERIMENTS.md); earlier PST900 /
+PSTNet segmentation results live in [PSTNET_EXPERIMENTS.md](PSTNET_EXPERIMENTS.md).
+Keep their models, splits, metrics and pending work distinct: pixel mIoU is not
+detection AP/mAP. Use Car1, Car2 and Infra in UrbanIng explanations and state
+which platform performs the detection task.
 
 ## Research objective
 
@@ -64,7 +73,7 @@ payloads retained as files/object-storage assets. New datasets are appended
 occasionally; experiments generally read stable snapshots. No central database
 server or Cyfronet deployment has been set up.
 
-## UrbanIng-V2X: prepared data, next experiment
+## UrbanIng-V2X: active detection and acquisition study
 
 The current research direction is cooperative **3D object detection**, followed
 by acquisition experiments on a working detector/fusion baseline. The dataset
@@ -80,8 +89,40 @@ The intended order agreed with the user is:
 
 Selective communication already has prior work, including methods in the
 authors' benchmark. Do not claim novelty without a relevant literature comparison.
-No particular trained UrbanIng model or final modality combination has been
-selected, reproduced or evaluated in this repository.
+The user selected the authors' released **LiDAR CoBEVT SIS_1_2_vs_3** checkpoint
+for stage 1. A pinned external-model adapter and offline comparison runner are
+implemented: Car1, Car1 + Car2, Car1 + Infra, all sources, random-one-peer and
+an optional uncertainty gate based on Car1's predictions. Car1 (`100000`) and
+Car2 (`200000`) are platform identities; this pilot uses Car1 as the detector's
+reference agent. Infra (`-1` at crossing1) is the bundled infrastructure site.
+All actions share fixed all-source GT. The original multi-sensor native catalog
+remains separate.
+The released model groups roadside sensors into one infrastructure-site input;
+this is not sensor-level acquisition or RGB/thermal fusion.
+See [stage 1 protocol and commands](URBANING_STAGE1.md).
+
+Joint subset acquisition is now implemented: no acquisition, Car2, Infra, or
+both, with a separately fitted joint-gain head rather than additive single-peer
+gains. The user requires comparable random behavior: schedule-matched and
+exact histogram/budget-matched randomized controls over the same feasible
+subsets, including zero and two requests. The independent Bernoulli-subset
+baseline is also retained. Use 100 predeclared seeds, not a selected seed.
+See [subset policy protocol and diagnostic replay](URBANING_SUBSET_POLICIES.md).
+The fitting/export/replay path passed synthetic tests and cached replay passed
+on the existing 20 real frames. No gain model was trained on real data: these
+windows share one original recording, so they cannot be split between policy
+fitting and validation. Recordings used for either stage are rejected during
+evaluation; crossing3 remains reserved. The offline hindsight F1 selector uses
+GT and must never be presented as a deployable learned policy.
+
+Model archive integrity and strict checkpoint compatibility have been checked.
+CPU tests use synthetic voxels and known boxes. A real-data CPU smoke evaluation
+also completed on 20 frames (1–10 and 101–110 of the prepared crossing1 sequence);
+see [UrbanIng experiment status](URBANING_EXPERIMENTS.md). The full held-out
+benchmark and online acquisition remain pending. The execution environment is a remote
+Linux CPU session, not the user's MacBook. One native sequence was downloaded and
+verified again there; no GPU or PLGrid session is available. The complete CPU
+path works on Linux; native macOS/Apple Silicon dependency installation is not validated.
 
 One real sequence, `20241126_0017_crossing1_00`, release 1.0 of
 `doi:10.7910/DVN/A9LPY7`, was downloaded, hash-verified, extracted and cataloged:
@@ -119,9 +160,11 @@ links and timestamp precision were checked. Geometry roundtrip checks establish
 matrix consistency, not independent physical calibration accuracy. Image and
 point-cloud previews show source data and ground truth, not learned predictions.
 
-See [UrbanIng implementation and commands](URBANING.md). No UrbanIng detector,
-learned fusion, acquisition policy, online replay or task-quality result exists
-yet. No agent assignment has been performed for this dataset.
+See [UrbanIng import and inspection](URBANING.md) and the separate
+[CoBEVT stage 1 adapter](URBANING_STAGE1.md). A diagnostic real-data CPU result is
+available; full held-out evaluation and online replay are pending. No general simulator agent assignment has been
+performed for this dataset; the model adapter follows the official three-source
+vehicle/site grouping only.
 
 ## PST900: implemented earlier research, retained separately
 
@@ -146,10 +189,22 @@ counterfactual gains are offline targets, not runtime policy inputs.
 Training, validation, acquisition learning and final testing must remain
 separate. Keep related recordings together, and account for the fact that the
 older presence test subset was inspected during development. See
-[experiment status](EXPERIMENTS.md), [PSTNet guide](PSTNET_REPRODUCTION.md) and
+[PSTNet experiment status](PSTNET_EXPERIMENTS.md),
+[PSTNet guide](PSTNET_REPRODUCTION.md) and
 [presence baseline](PRESENCE_BASELINE.md).
 
 ## Repository and machine handoff
+
+The user confirmed active Ares access on 2026-10-29. A recording-level protocol
+and resumable subprocess driver are prepared with a CPU Slurm wrapper; see
+[Ares experiment setup](URBANING_ARES.md). Two training recordings, one validation
+recording and one crossing3 test recording are predeclared, up to 200 frames
+each. Policy fitting is frozen before collecting test predictions. The wrapper
+requests 8 CPUs, 24 GB RAM and 12 hours (maximum allocation 96 CPU-hours).
+No job has been submitted: this session has no authenticated SSH configuration,
+and the grant allocation/environment paths are not known. Dataverse currently
+returns HTTP 403 here; connectivity from Ares has not been checked. Do not infer
+that active cluster access means a runnable runtime or accessible source data.
 
 Private GitHub repository: `https://github.com/janraj00/phdsim`.
 The initial published commit is `f7323c22e953042cfc2d735c0027aa6e7b831ec2` on

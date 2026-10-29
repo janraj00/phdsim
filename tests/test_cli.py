@@ -13,7 +13,7 @@ from phdsim.cli import main
 
 class CliTests(unittest.TestCase):
     def test_explicit_workflows_forward_their_arguments(self):
-        for workflow in ('pstnet', 'presence'):
+        for workflow in ('pstnet', 'presence', 'urbaning'):
             with self.subTest(workflow=workflow), patch(f'phdsim.cli.{workflow}.main') as child:
                 main([workflow, '--help'])
                 child.assert_called_once_with(['--help'])
