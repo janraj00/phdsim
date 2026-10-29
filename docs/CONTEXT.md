@@ -195,6 +195,17 @@ older presence test subset was inspected during development. See
 
 ## Repository and machine handoff
 
+The user confirmed active Ares access on 2026-10-29. A recording-level protocol
+and resumable subprocess driver are prepared with a CPU Slurm wrapper; see
+[Ares experiment setup](URBANING_ARES.md). Two training recordings, one validation
+recording and one crossing3 test recording are predeclared, up to 200 frames
+each. Policy fitting is frozen before collecting test predictions. The wrapper
+requests 8 CPUs, 24 GB RAM and 12 hours (maximum allocation 96 CPU-hours).
+No job has been submitted: this session has no authenticated SSH configuration,
+and the grant allocation/environment paths are not known. Dataverse currently
+returns HTTP 403 here; connectivity from Ares has not been checked. Do not infer
+that active cluster access means a runnable runtime or accessible source data.
+
 Private GitHub repository: `https://github.com/janraj00/phdsim`.
 The initial published commit is `f7323c22e953042cfc2d735c0027aa6e7b831ec2` on
 `master`; this handoff is a subsequent documentation change. README and maintained

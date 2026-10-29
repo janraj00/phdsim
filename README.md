@@ -170,6 +170,7 @@ its preparation is described in the training guide.
 - [UrbanIng-V2X real sequence import, catalog and geometry inspection](docs/URBANING.md)
 - [Experiment index: separate datasets, models, tasks and status](docs/EXPERIMENTS.md)
 - [UrbanIng CoBEVT measurements and next research steps](docs/URBANING_EXPERIMENTS.md)
+- [Ares: frozen recording-level experiment and Slurm submission](docs/URBANING_ARES.md)
 - [PST900 / PSTNet pilot measurements and pending work](docs/PSTNET_EXPERIMENTS.md)
 - [PSTNet reproduction and own RGB training](docs/PSTNET_REPRODUCTION.md)
 - [Historical presence baseline](docs/PRESENCE_BASELINE.md)
