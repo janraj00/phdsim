@@ -1,6 +1,6 @@
 # PHDSIM research handoff
 
-Updated: **2026-10-28**. This document summarizes the latest decisions in the
+Updated: **2026-10-29**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
@@ -100,6 +100,20 @@ remains separate.
 The released model groups roadside sensors into one infrastructure-site input;
 this is not sensor-level acquisition or RGB/thermal fusion.
 See [stage 1 protocol and commands](URBANING_STAGE1.md).
+
+Joint subset acquisition is now implemented: no acquisition, Car2, Infra, or
+both, with a separately fitted joint-gain head rather than additive single-peer
+gains. The user requires comparable random behavior: schedule-matched and
+exact histogram/budget-matched randomized controls over the same feasible
+subsets, including zero and two requests. The independent Bernoulli-subset
+baseline is also retained. Use 100 predeclared seeds, not a selected seed.
+See [subset policy protocol and diagnostic replay](URBANING_SUBSET_POLICIES.md).
+The fitting/export/replay path passed synthetic tests and cached replay passed
+on the existing 20 real frames. No gain model was trained on real data: these
+windows share one original recording, so they cannot be split between policy
+fitting and validation. Recordings used for either stage are rejected during
+evaluation; crossing3 remains reserved. The offline hindsight F1 selector uses
+GT and must never be presented as a deployable learned policy.
 
 Model archive integrity and strict checkpoint compatibility have been checked.
 CPU tests use synthetic voxels and known boxes. A real-data CPU smoke evaluation

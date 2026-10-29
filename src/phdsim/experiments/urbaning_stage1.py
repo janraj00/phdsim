@@ -134,6 +134,15 @@ def run(args):
     from phdsim.perception.urbaning.cobevt import ego_entropy, subset_inputs
 
     validate_selection(args.sequence, args.purpose, args.max_frames, args.start, args.ego_id)
+    acquisition_model = None
+    if getattr(args, 'acquisition_model', None):
+        from phdsim.learning.urbaning import assert_unseen_recordings
+        acquisition_model = json.loads(Path(args.acquisition_model).read_text())
+        assert_unseen_recordings(acquisition_model, [args.sequence])
+        if acquisition_model.get('detector') != verify_bundle(args.model_dir):
+            raise ValueError('Acquisition model was fitted for a different frozen detector')
+        from phdsim.learning.urbaning import choose_learned_subset
+        choose_learned_subset(acquisition_model, [str(args.ego_id)], 0., np.empty((0, 2)))
     if os.environ.get('PYTHONHASHSEED') != '0':
         raise ValueError('Set PYTHONHASHSEED=0 before Python starts, or use scripts/urbaning_stage1.py')
     if not 0 <= args.seed < 2 ** 32:
@@ -186,6 +195,12 @@ def run(args):
                                                          'evaluation/urbaning.py', 'perception/urbaning/cobevt.py',
                                                          'perception/urbaning/bundle.py')}}
     write_json(output / 'run.json', provenance)
+    if acquisition_model is not None:
+        provenance['acquisition_model'] = {'sha256': sha256(args.acquisition_model),
+                                            'request_cost': acquisition_model['request_cost']}
+        provenance['implementation_sha256']['learning/urbaning.py'] = sha256(
+            Path(__file__).resolve().parents[1] / 'learning/urbaning.py')
+        write_json(output / 'acquisition-model.json', acquisition_model)
     statistics, requests, fallback_count = {}, {}, {}
     source_manifest = Path(args.data_root) / 'phdsim-conversion.json'
     conversion = json.loads(source_manifest.read_text()) if source_manifest.is_file() else None
@@ -240,6 +255,10 @@ def run(args):
                 if args.entropy_threshold is not None:
                     selected['entropy_gate'] = choose_one_peer(ids, frame_key, args.seed,
                                                                uncertainty, args.entropy_threshold)
+                if acquisition_model is not None:
+                    from phdsim.learning.urbaning import choose_learned_subset
+                    selected['learned_joint_gain'] = choose_learned_subset(
+                        acquisition_model, ids, uncertainty, arrays['ego_scores'])
                 executed = dict(actions)
                 executed.update({name: actions[choice] for name, choice in selected.items()})
                 for name, indices in executed.items():
@@ -300,6 +319,7 @@ def main(argv=None):
     execute.add_argument('--seed', type=int, default=42)
     execute.add_argument('--cpu-threads', type=int, default=2)
     execute.add_argument('--entropy-threshold', type=float, help='Optional fixed ego entropy gate [0,1]; never tune on test')
+    execute.add_argument('--acquisition-model', help='Frozen joint-subset gain model fitted on other recordings')
     execute.add_argument('--output', required=True)
     args = parser.parse_args(argv)
     if args.command == 'fetch':

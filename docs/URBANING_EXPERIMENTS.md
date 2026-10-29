@@ -73,6 +73,21 @@ Local artifacts: `runs/urbaning-stage1-cpu-smoke-001/` and
 associations, source hashes, per-action predictions, shared GT and metrics.
 Raw data, model weights and run artifacts remain outside Git.
 
+## Joint subset policies and fair random controls — 2026-10-29
+
+The policy space has been extended to none / Car2 / Infra / both, including a
+joint-gain predictor and exact matched random controls. The cached replay of all
+20 frames reproduced the original fixed-baseline class AP and support before
+comparison. The 100-seed one-request random reference on frames 101–110 reached
+42.05% mean mAP@0.5 with 1.87 p.p. standard deviation; always-Infra remained
+47.53%. This is randomization spread on one short recording, not evidence of
+generalization or a confidence interval.
+
+No real-data gain model has been fitted or evaluated; synthetic fit/replay tests
+passed. The two windows cannot be used as separate policy train/validation sets.
+The report also includes a privileged hindsight F1 reference, explicitly separate
+from deployable policies. See the [full protocol, results and commands](URBANING_SUBSET_POLICIES.md).
+
 ## Local run ledger
 
 | Directory under `runs/` | Purpose |

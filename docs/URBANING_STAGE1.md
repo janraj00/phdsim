@@ -1,5 +1,11 @@
 # UrbanIng stage 1: frozen LiDAR acquisition baseline
 
+For joint none/Car2/Infra/both acquisition, a gain predictor and matched random
+controls, see the [subset policy protocol](URBANING_SUBSET_POLICIES.md).
+`phdsim urbaning subsets` fits and compares policies using saved counterfactual
+predictions. The runner below accepts a frozen model via `--acquisition-model`;
+that option does not change its offline counterfactual scope.
+
 Status: **implemented runner, passing CPU contract tests and real-data CPU smoke
 evaluation**. Full held-out benchmark evaluation remains pending. Results and
 their scope are recorded in [UrbanIng experiment status](URBANING_EXPERIMENTS.md).

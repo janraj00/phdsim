@@ -53,6 +53,10 @@ path settings and verification commands. Recreate `.venv` instead of copying it.
   a partner on every frame, so effective adaptive stopping is not established.
 - Full held-out evaluation, GPU execution and native macOS setup remain pending.
   See [UrbanIng measurements and limitations](docs/URBANING_EXPERIMENTS.md).
+- [Joint subset acquisition](docs/URBANING_SUBSET_POLICIES.md) supports none,
+  Car2, Infra or both, a gain predictor and exact matched random controls.
+  Synthetic fitting and 20-frame cached replay passed; a real-data policy has
+  not been trained or evaluated on independent recordings.
 
 ### PST900 / PSTNet: earlier segmentation study
 

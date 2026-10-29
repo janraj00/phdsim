@@ -12,9 +12,12 @@ def main(argv=None):
     if arguments and arguments[0] == 'cobevt':
         from phdsim.experiments.urbaning_stage1 import main as stage1_main
         return stage1_main(arguments[1:])
+    if arguments and arguments[0] == 'subsets':
+        from phdsim.experiments.urbaning_subsets import main as subsets_main
+        return subsets_main(arguments[1:])
     parser = ArgumentParser(prog='phdsim urbaning')
     parser.add_argument('action', choices=('fetch', 'extract', 'inspect', 'opencood-view'),
-                        help='Source preparation; also use: urbaning cobevt --help')
+                        help='Source preparation; also use: urbaning cobevt --help or urbaning subsets --help')
     parser.add_argument('--root', default=r'D:\Doktorat\Platforma\data\urbaning-v2x')
     parser.add_argument('--sequence', default=DEFAULT_SEQUENCE)
     parser.add_argument('--output', default='runs/urbaning_inspection')
