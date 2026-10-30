@@ -39,7 +39,11 @@ def _inside(root, relative):
     return path
 
 
-def load_runs(directories):
+def load_runs(directories, geometry_sidecars=None):
+    if geometry_sidecars is not None:
+        from phdsim.experiments.urbaning_geometry import load_sidecars
+        geometry = load_sidecars(geometry_sidecars)
+        used_geometry = set()
     frames, manifests, keys = [], [], set()
     detector = None
     for directory in directories:
@@ -56,6 +60,15 @@ def load_runs(directories):
         original = json.loads((root / 'metrics.json').read_text())
         rows = [json.loads(line) for line in (root / 'frames.jsonl').read_text().splitlines()]
         current, payloads = [], {}
+        sidecar = None
+        if geometry_sidecars is not None:
+            trace_hash = digest(root / 'frames.jsonl')
+            if trace_hash not in geometry:
+                raise ValueError('Missing trace-bound geometry sidecar')
+            sidecar, sidecar_hash = geometry[trace_hash]
+            used_geometry.add(trace_hash)
+            if set(sidecar['frames']) != {r['frame_key'] for r in rows}:
+                raise ValueError('Geometry frame coverage mismatch')
         for row in rows:
             key, ids = row['frame_key'], row['sources']['included_ids']
             expected_key = '{}:{}:{}'.format(sequence, row['source_frame_id'], run['arguments']['ego_id'])
@@ -78,10 +91,17 @@ def load_runs(directories):
                         if not np.array_equal(data[name + '_' + field], data[canonical + '_' + field]):
                             raise ValueError('Fallback cache outcomes disagree')
                 features = ego_features(ids, row['ego_entropy_bits'], data['ego_scores'])
+                if sidecar is not None:
+                    from phdsim.learning.urbaning_geometry import geometry_features
+                    features = geometry_features(ids, row['ego_entropy_bits'], data['ego_scores'],
+                                                 data['ego_boxes'], sidecar['frames'][key])
             frame = {'key': key, 'sequence': sequence, 'source_ids': ids,
                      'native_association': row.get('native_association'),
                      'ego_entropy': row['ego_entropy_bits'], 'features': features,
                      'statistics': statistics, 'quality': {n: frame_f1(s) for n, s in statistics.items()}}
+            if sidecar is not None:
+                from phdsim.learning.urbaning_geometry import SCHEMA as GEOMETRY_SCHEMA
+                frame['feature_schema'] = GEOMETRY_SCHEMA
             current.append(frame)
         if not current:
             raise ValueError('Empty cache')
@@ -102,7 +122,12 @@ def load_runs(directories):
         manifests.append({'directory': str(root), 'sequence': sequence,
                           'run_sha256': digest(root / 'run.json'),
                           'trace_sha256': digest(root / 'frames.jsonl'), 'predictions_sha256': payloads})
+        if sidecar is not None:
+            manifests[-1]['geometry_sidecar_sha256'] = sidecar_hash
+            manifests[-1]['geometry_metadata_assumption'] = sidecar['metadata_assumption']
         frames.extend(current)
+    if geometry_sidecars is not None and used_geometry != set(geometry):
+        raise ValueError('Unused geometry sidecars')
     if not frames:
         raise ValueError('At least one cache is required')
     return sorted(frames, key=lambda f: f['key']), {'detector': detector, 'inputs': manifests}
@@ -134,12 +159,17 @@ def fit(train, validation, alphas, cost):
     val_groups = {recording_group(s) for s in val_sequences}
     if train_groups & val_groups or any('crossing3' in s for s in train_sequences + val_sequences):
         raise ValueError('Use disjoint original train/validation recordings outside crossing3')
+    from phdsim.learning.urbaning import SCHEMA as EGO_SCHEMA
+    schemas = {f.get('feature_schema', EGO_SCHEMA) for f in train + validation}
+    if len(schemas) != 1:
+        raise ValueError('Training and validation feature schemas differ')
+    schema = schemas.pop()
     x = np.asarray([f['features'] for f in train])
     targets = [[f['quality'].get(a, f['quality']['ego']) - f['quality']['ego'] for a in HEADS] for f in train]
     masks = [[a in f['quality'] for a in HEADS] for f in train]
     candidates = []
     for alpha in sorted(set(alphas)):
-        model = fit_joint_gain(x, targets, masks, alpha, train_sequences)
+        model = fit_joint_gain(x, targets, masks, alpha, train_sequences, schema=schema)
         model['request_cost'] = cost
         from phdsim.learning.urbaning import predict_gains
         choices = [choose_subset(f['source_ids'], predict_gains(model, f['features']), cost) for f in validation]
@@ -177,6 +207,9 @@ def comparison(frames, provenance, seeds, model=None, diagnostic_cost=None, entr
                                    choose_one_peer(f['source_ids'], f['key'], policy_seed)) for f in frames]
     if model is not None:
         from phdsim.learning.urbaning import predict_gains
+        from phdsim.learning.urbaning import SCHEMA as EGO_SCHEMA
+        if any(f.get('feature_schema', EGO_SCHEMA) != model['schema'] for f in frames):
+            raise ValueError('Evaluation feature schema differs from frozen model')
         assert_unseen_recordings(model, _sequence_set(frames))
         if model.get('detector') != provenance['detector']:
             raise ValueError('Gain model was fitted for a different detector')
@@ -248,12 +281,15 @@ def main(argv=None):
     replay.add_argument('--entropy-thresholds', type=float, nargs=2, default=[.5, .7])
     replay.add_argument('--policy-seed', type=int, default=42)
     replay.add_argument('--output', required=True)
+    train.add_argument('--train-geometry', nargs='+', help='Pose sidecars, one per training run')
+    train.add_argument('--validation-geometry', nargs='+', help='Pose sidecars, one per validation run')
+    replay.add_argument('--geometry', nargs='+', help='Pose sidecars, one per evaluation run')
     args = parser.parse_args(argv)
     if Path(args.output).exists():
         raise FileExistsError('Use a new output file')
     if args.command == 'fit':
-        train_frames, train_provenance = load_runs(args.train_runs)
-        val_frames, val_provenance = load_runs(args.validation_runs)
+        train_frames, train_provenance = load_runs(args.train_runs, args.train_geometry)
+        val_frames, val_provenance = load_runs(args.validation_runs, args.validation_geometry)
         if train_provenance['detector'] != val_provenance['detector']:
             raise ValueError('Training/validation detectors differ')
         result = fit(train_frames, val_frames, args.alphas, args.request_cost)
@@ -262,7 +298,7 @@ def main(argv=None):
     else:
         if args.model and args.diagnostic_cost is not None:
             raise ValueError('Do not replace the cost frozen in a gain model')
-        frames, provenance = load_runs(args.runs)
+        frames, provenance = load_runs(args.runs, args.geometry)
         model = json.loads(Path(args.model).read_text()) if args.model else None
         if args.model:
             provenance['gain_model_sha256'] = digest(args.model)
@@ -273,6 +309,10 @@ def main(argv=None):
                                                  Path(__file__).resolve().parents[1] / 'decision/urbaning.py',
                                                  Path(__file__).resolve().parents[1] / 'learning/urbaning.py',
                                                  Path(__file__).resolve().parents[1] / 'evaluation/urbaning_cached.py')}
+    if (args.command == 'fit' and args.train_geometry) or (args.command == 'compare' and args.geometry):
+        for relative in ('learning/urbaning_geometry.py', 'experiments/urbaning_geometry.py'):
+            path = Path(__file__).resolve().parents[1] / relative
+            result['implementation_sha256'][relative] = digest(path)
     write_json(args.output, result)
     print(args.output)
 
