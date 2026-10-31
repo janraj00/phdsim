@@ -20,6 +20,20 @@ class BenchmarkTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             make_plan(metadata)
 
+    def test_non_sequence_split_archives_are_reported_and_not_selected(self):
+        metadata = {'data': {'latestVersion': {'versionNumber': 1, 'versionMinorNumber': 0,
+                    'files': [{'dataFile': {'filename': n}} for n in [
+                        'digital_twin.7z.001', '20241127_0009_crossing3_00.7z.001',
+                        '20241127_0009_crossing3_00.7z.002', 'readme.txt']]}}}
+        with patch('phdsim.datasets.urbaning.source.sequence_files', return_value=[{'bytes': 100}]) as select:
+            plan = make_plan(metadata)
+        self.assertEqual(plan['test_sequences'], ['20241127_0009_crossing3_00'])
+        self.assertEqual(plan['ignored_non_sequence_first_parts'], ['digital_twin.7z.001'])
+        select.assert_called_once_with(metadata, '20241127_0009_crossing3_00')
+        metadata['data']['latestVersion']['files'] = [{'dataFile': {'filename': 'maps.7z.001'}}]
+        with self.assertRaisesRegex(ValueError, 'No valid sequence archives'):
+            make_plan(metadata)
+
     def test_merge_preserves_frame_order_and_ap_modes_do_not_mutate_stats(self):
         a, b = empty_stats(), empty_stats()
         for c in a:

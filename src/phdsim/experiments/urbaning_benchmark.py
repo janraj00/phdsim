@@ -21,16 +21,21 @@ def make_plan(metadata):
     version = metadata['data']['latestVersion']
     if (version['versionNumber'], version.get('versionMinorNumber', 0)) != (1, 0):
         raise ValueError('Expected dataset release 1.0')
-    names = sorted({f['dataFile']['filename'].removesuffix('.7z.001')
-                    for f in version['files'] if f['dataFile']['filename'].endswith('.7z.001')})
-    if not names or any(not SEQUENCE_PATTERN.fullmatch(n) for n in names):
-        raise ValueError('Missing or invalid sequence inventory')
+    archives = sorted({f['dataFile']['filename'].removesuffix('.7z.001')
+                       for f in version['files'] if f['dataFile']['filename'].endswith('.7z.001')})
+    # The dataset inventory also contains non-sequence split archives (e.g. maps).
+    # Select by the importer's native sequence contract, not just the extension.
+    names = [n for n in archives if SEQUENCE_PATTERN.fullmatch(n)]
+    ignored = [n + '.7z.001' for n in archives if not SEQUENCE_PATTERN.fullmatch(n)]
+    if not names:
+        raise ValueError('No valid sequence archives; inspected first parts: ' + repr(archives))
     # Official SIS holds out ALL sequences of crossing3; no random sampling.
     test = [n for n in names if '_crossing3_' in n]
     if not test:
         raise ValueError('No crossing3 test sequences')
     return {'schema': 'phdsim-urbaning-benchmark-v1', 'dataset_version': '1.0',
             'test_sequences': test, 'source_sequences': names,
+            'ignored_non_sequence_first_parts': ignored,
             'download_bytes_including_repeated_support': sum(
                 i['bytes'] for n in test for i in sequence_files(metadata, n)),
             'frames': 'all source synchronization anchors; no frame cap',
