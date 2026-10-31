@@ -91,3 +91,18 @@ invariance, missing/empty/invalid inputs, learning a synthetic distance signal,
 trace binding, disjoint-recording fit/replay, feature-schema guards, and safe
 pose extraction from YAML carrying unrelated Python tags. Existing UrbanIng
 tests also pass. These are implementation checks, not real-data policy results.
+
+## Ares submission after the baseline completes
+
+The provided `scripts/slurm/urbaning_geometry.sbatch` uses the verified user's
+Ares group paths and container wrapper, reuses all four completed baseline
+caches and their original converted YAMLs, and writes a new
+`runs/urbaning-geometry-001` directory in the baseline checkout. It refuses an
+existing output directory. Submit from a separate geometry worktree root with
+`sbatch -A plgkgacq-cpu scripts/slurm/urbaning_geometry.sbatch`.
+It requests 4 CPUs, 12 GB and a four-hour limit (at most 16 allocated CPU-hours,
+not an execution-time estimate). It fits/freezes before exporting test poses
+and comparing test predictions. No detector inference or dataset conversion
+is run. Keep the predeclared feature definition fixed despite having now
+inspected the ego-baseline test report; this is an incremental comparison on
+an already examined test recording, not a fresh independent confirmation set.
