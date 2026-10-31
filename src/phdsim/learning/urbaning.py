@@ -50,14 +50,24 @@ def ego_features(source_ids, entropy, ego_scores):
     return np.asarray(values)
 
 
-def fit_joint_gain(features, targets, available, alpha, train_sequences):
+def feature_spec(schema):
+    if schema == SCHEMA:
+        return FEATURES
+    from phdsim.learning.urbaning_geometry import SCHEMA as GEO_SCHEMA, FEATURES as GEO_FEATURES
+    if schema == GEO_SCHEMA:
+        return GEO_FEATURES
+    raise ValueError('Unsupported gain feature schema')
+
+
+def fit_joint_gain(features, targets, available, alpha, train_sequences, schema=SCHEMA):
     """Fit three separate ridge heads, including an explicit both-partners head.
 
     targets/availability are Nx3 in HEADS order. Unavailable outcomes are not
     turned into ego fallback examples. Scaling and fitting use training only.
     """
+    names = feature_spec(schema)
     x, y, mask = np.asarray(features, float), np.asarray(targets, float), np.asarray(available, bool)
-    if (x.ndim != 2 or x.shape[1] != len(FEATURES) or len(x) < 2 or
+    if (x.ndim != 2 or x.shape[1] != len(names) or len(x) < 2 or
             y.shape != (len(x), 3) or mask.shape != y.shape or
             not np.isfinite(x).all() or not np.isfinite(y).all() or
             not math.isfinite(alpha) or alpha <= 0):
@@ -69,7 +79,7 @@ def fit_joint_gain(features, targets, available, alpha, train_sequences):
     mean, scale = x.mean(axis=0), x.std(axis=0)
     scale[scale < 1e-8] = 1.
     design = np.column_stack([np.ones(len(x)), (x - mean) / scale])
-    penalty = np.diag([0.] + [alpha] * len(FEATURES))
+    penalty = np.diag([0.] + [alpha] * len(names))
     heads = {}
     for j, name in enumerate(HEADS):
         selected = mask[:, j]
@@ -77,17 +87,18 @@ def fit_joint_gain(features, targets, available, alpha, train_sequences):
             raise ValueError('Need at least two feasible training examples for ' + name)
         a, b = design[selected], y[selected, j]
         heads[name] = np.linalg.solve(a.T @ a + penalty, a.T @ b).tolist()
-    return {'schema': SCHEMA, 'target': TARGET, 'features': list(FEATURES),
+    return {'schema': schema, 'target': TARGET, 'features': list(names),
             'mean': mean.tolist(), 'scale': scale.tolist(), 'heads': heads,
             'alpha': alpha, 'train_sequences': sequences, 'train_recording_groups': groups}
 
 
 def predict_gains(model, features):
-    if model.get('schema') != SCHEMA or model.get('target') != TARGET or model.get('features') != list(FEATURES):
+    names = feature_spec(model.get('schema'))
+    if model.get('target') != TARGET or model.get('features') != list(names):
         raise ValueError('Incompatible gain model')
     x = np.asarray(features, float)
     mean, scale = np.asarray(model['mean'], float), np.asarray(model['scale'], float)
-    if (x.shape != (len(FEATURES),) or mean.shape != x.shape or scale.shape != x.shape or
+    if (x.shape != (len(names),) or mean.shape != x.shape or scale.shape != x.shape or
             not np.isfinite([x, mean, scale]).all() or np.any(scale <= 0)):
         raise ValueError('Invalid model scaling or evidence')
     design = np.r_[1., (x - mean) / scale]

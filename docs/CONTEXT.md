@@ -1,8 +1,29 @@
 # PHDSIM research handoff
 
-Updated: **2026-10-29**. This document summarizes the latest decisions in the
+Updated: **2026-10-30**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Latest geometry-policy extension (2026-10-30)
+
+The user approved predicting partner utility from partner poses relative to
+low-score Car1 detections. A separate 32-feature geometry profile, pose-only
+sidecar exporter and cached fit/replay path are implemented; the 16-feature
+baseline remains unchanged by default. No geometry model has been trained on
+real recordings. See [geometry policy contract](URBANING_GEOMETRY_POLICY.md).
+Infra's released pose is the bundled site's coordinate origin, not an individual
+sensor; use proximity only as a proxy. Pre-query pose sharing is explicit added
+metadata, not an established online transport capability.
+
+The user supplied successful Ares container doctor output and the 10-frame CPU
+smoke metrics, matching the earlier pilot. Preflight Slurm job 21540119 completed
+with exit 0. The user then submitted baseline job **21540128** (8 CPUs, 24 GB,
+12 hours); the latest supplied trace showed crossing2 inference in progress.
+No final independent-recording policy result has been supplied. This assistant
+still has no direct Ares SSH access. Do not update the active Ares checkout while
+that experiment runs; use the separate geometry branch/check out afterwards.
+Earlier machine-state notes below describe preparation history and are superseded
+by these user-provided execution observations.
 
 ## Research tracks and reporting
 
