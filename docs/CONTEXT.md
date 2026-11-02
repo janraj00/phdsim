@@ -4,6 +4,25 @@ Updated: **2026-11-02**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Latest execution and diagnostic follow-up (2026-11-02)
+
+The user submitted full-policy array **21564341**, collector **21564342**, and
+single-sequence preview **21564899**. Sequence `20241127_0010_crossing3_08` and its
+preview completed successfully. The uploaded preview ZIP was read: 200 frames,
+Infra available in all 200 and Car2 in 39. Gain–Ego used 217 requests with global
+mAP@.5 39.2178%; Gain–Geometry used 237 with 38.6464%; Infra-only used 200 with
+39.3278%. Geometry did not improve selection in this inspected recording. The
+full seven-sequence policy report has not been supplied yet.
+
+The user authorized post-hoc availability-stratified, original-recording and
+paired marginal-F1 analysis, plus frozen gain prediction errors and GT-assisted
+utility headroom. A separate diagnostics job is prepared to wait for collector
+21564342; it performs no training/tuning/detector inference and packages both
+full and diagnostic reports into `urbaning-analysis.zip`. See
+[diagnostic protocol](URBANING_DIAGNOSTICS.md). Submit from a separate worktree;
+do not edit the checkout used by the active full-policy array. Older preparation
+statements below are superseded by these user-confirmed submissions/results.
+
 ## Current verified state and next run (2026-11-02)
 
 User-supplied full benchmark report confirms completion of seven crossing3
