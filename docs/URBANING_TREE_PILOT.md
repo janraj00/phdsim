@@ -2,7 +2,9 @@
 
 Prepared on 2026-11-02; not yet executed on the real Ares caches. This is an
 isolated development comparison and does not change the frozen models or the
-active full crossing3 experiment.
+active full crossing3 experiment. First job 21569029 failed at the dependency
+import preflight before loading caches or creating output; the updated batch
+entry point below installs dependencies into a private job directory.
 
 ## Question and fixed protocol
 
@@ -39,15 +41,20 @@ All candidate utilities, selected choices, gain MAE/RMSE/bias and full metrics
 for both AP ordering modes are reported. AP is diagnostic; it does not select
 the model. Models and their input provenance are saved with SHA-256 hashes.
 Boosted trees are stored in plain JSON with a NumPy predictor; no pickle is
-loaded and existing ridge consumers/formats are not changed. The pilot uses
-the scikit-learn already present in the container and records its exact version.
+loaded and existing ridge consumers/formats are not changed. The batch entry
+point installs the five exact versions in `requirements/urbaning-tree-pilot.txt`
+into `phdsim-work/dependencies/urbaning-tree-pilot-<job-id>`, using the existing
+container Python and pip's `--target --no-deps --only-binary=:all:`. This keeps
+the shared venv unchanged. It verifies all five module origins and versions,
+then fits a two-sample smoke model before reading any experiment payloads.
 
 ## Run without repeating detector inference
 
 Use a separate worktree. The batch script reads only the three completed
 training/validation caches and their existing pose sidecars under the original
-`phdsim/runs`. It never exports poses again, imports upstream OpenCOOD, downloads
-data, runs the detector, submits another job or reads crossing3 predictions.
+`phdsim/runs`. It downloads dependency wheels only; it never exports poses
+again, imports upstream OpenCOOD, downloads dataset/model files, runs the
+detector, submits another job or reads crossing3 predictions.
 Crossing3 and recording overlaps are rejected from run headers before loading
 prediction payloads. GT fingerprints, trace-bound poses and the original
 baseline AP are checked by the existing independent cache reader; hashes of
@@ -61,10 +68,11 @@ sbatch -A plgkgacq-cpu scripts/slurm/urbaning_tree_pilot.sbatch
 
 The job reserves 4 CPUs, 12 GB and at most one hour. This is a resource limit,
 not a measured runtime: rechecking cached boxes can dominate the small fit.
-It does not wait for or alter the active full-test array. scikit-learn must
-already import inside the worker container (Open3D normally depends on it).
-If absent, the job fails before loading caches or creating results; do not
-upgrade the shared venv while existing jobs use it.
+It does not wait for or alter the active full-test array. Dependency installation
+and verification run on the worker inside the container; missing/broken packages
+in the shared venv are not reused for these five modules. A failed installation
+is preserved in its job-specific directory and does not create experiment
+output. Network access to the Python package index is needed for the wheels.
 
 Output directory (must not exist):
 `/net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work/phdsim/runs/urbaning-tree-pilot-001`.

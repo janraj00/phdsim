@@ -6,6 +6,15 @@ project conversation. Earlier explanations in the
 
 ## Validation-only nonlinear policy pilot (2026-11-02)
 
+The first pilot job **21569029** failed during the scikit-learn import preflight,
+before any cache loading or training. The supplied log tail does not reveal the
+original ImportError. The revised batch entry point installs all five pinned
+scientific runtime packages into a fresh job-specific directory under
+`phdsim-work/dependencies`, verifies versions/module origins and a tiny model
+fit inside the existing container, then runs the pilot. It does not change the
+shared venv. The experiment output path remains unchanged because that failed
+preflight occurred before output creation. No real pilot results exist yet.
+
 The user authorized a cheap comparison of ridge and shallow boosted trees on
 the existing crossing1/2 training/validation caches, keeping the same 32
 Gain–Geometry features and request cost .05. The isolated runner and batch job

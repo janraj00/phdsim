@@ -181,7 +181,9 @@ def main(argv=None):
         import sklearn
         from sklearn.ensemble import GradientBoostingRegressor  # noqa: F401
     except ImportError as exc:
-        raise RuntimeError('scikit-learn is required inside the worker container; do not alter an active shared venv') from exc
+        raise RuntimeError('Pilot dependency import failed: {}: {}. Use scripts/urbaning_tree_env.py '
+                           'for isolated dependencies; do not alter the shared venv.'
+                           .format(type(exc).__name__, exc)) from exc
     out.mkdir(parents=True)
     code = subprocess.run(['git', '-C', str(Path(__file__).resolve().parents[3]), 'rev-parse', 'HEAD'],
                           capture_output=True, text=True, check=True).stdout.strip()
@@ -202,7 +204,8 @@ def main(argv=None):
     report = validation_report(train, validation, models, grids)
     report.update(code_commit=code, provenance={'train': train_provenance, 'validation': val_provenance},
                   runtime={'python': platform.python_version(), 'numpy': np.__version__,
-                           'scikit_learn': sklearn.__version__},
+                           'scikit_learn': sklearn.__version__,
+                           'numpy_file': np.__file__, 'scikit_learn_file': sklearn.__file__},
                   models={n: {'file': n + '-gain.json', 'sha256': digest(out / (n + '-gain.json'))}
                           for n in models})
     write_json(out / 'validation-report.json', report)
