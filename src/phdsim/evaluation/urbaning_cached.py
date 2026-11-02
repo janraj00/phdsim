@@ -125,8 +125,8 @@ def aggregate_statistics(frame_stats):
     return total
 
 
-def summarize_cached(statistics):
-    result = {'classes': {}, 'macro_ap': {}, 'metric': 'BEV polygon IoU; VOC AP; global sort'}
+def summarize_cached(statistics, global_sort=True):
+    result = {'classes': {}, 'macro_ap': {}, 'metric': 'BEV polygon IoU; VOC AP; ' + ('global sort' if global_sort else 'frame order')}
     for name in CLASSES:
         result['classes'][name] = {'ground_truth_count': statistics[name][0.3]['gt'], 'ap': {}}
         for threshold in IOU_THRESHOLDS:
@@ -134,7 +134,8 @@ def summarize_cached(statistics):
             if row['gt'] == 0:
                 ap = None
             else:
-                order = np.argsort(-np.asarray(row['score']))
+                order = (np.argsort(-np.asarray(row['score'])) if global_sort
+                         else np.arange(len(row['score'])))
                 tp = np.cumsum(np.asarray(row['tp'])[order])
                 fp = np.cumsum(np.asarray(row['fp'])[order])
                 recall = np.r_[0., tp / (row['gt'] + 1e-9), 1.]

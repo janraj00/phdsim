@@ -1,8 +1,38 @@
 # PHDSIM research handoff
 
-Updated: **2026-10-30**. This document summarizes the latest decisions in the
+Updated: **2026-11-02**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Current verified state and next run (2026-11-02)
+
+User-supplied full benchmark report confirms completion of seven crossing3
+sequences, 1400 frames, all-source frozen CoBEVT. mAP@.5 with upstream default
+ordering is 24.8134%, compared with 24.8563% in the checkpoint release report;
+with global confidence sorting the same predictions score 33.7102%. This is a
+close numerical reproduction, not an exact match. Do not mix AP ordering modes.
+
+The earlier recording-level experiment and Gain–Geometry fit/test completed.
+On the inspected 200-frame crossing3 pilot, Gain–Geometry used 295 requests,
+versus 370 for ALWAYS and 365 for Gain–Ego; global-sort mAP@.5 was 36.9542%,
+36.0734% and 36.1705%, respectively. Infra-only used 184 requests and scored
+37.3602%. These are pilot results, not full-test policy results.
+
+The user authorized expanded policy evaluation on the full 1400-frame test,
+using the existing frozen Gain–Ego/Geometry models, cost .05 and seeds 0–99.
+The separate full-policy runner is prepared, but no such job has been submitted
+from this session. It reads completed benchmark conversions, computes four
+counterfactual outcomes per frame and reports both AP ordering modes with matched
+random controls. No policy refitting or tuning on crossing3 is authorized by
+this expansion. See [full-policy protocol](URBANING_FULL_POLICIES.md).
+
+This session has no direct Ares SSH access; the user runs supplied SSH commands.
+Ares paths: `/net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work`,
+original repo `phdsim`, verified container wrapper `bin/urbaning-python.sh`.
+Use a separate worktree and preserve existing outputs. The official model release
+currently offers only CoBEVT weights; other methods have configurations but no
+weights were found in that release. Earlier dated machine/progress statements
+below are historical and superseded by this section.
 
 ## Latest geometry-policy extension (2026-10-30)
 
