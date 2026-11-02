@@ -133,12 +133,12 @@ def load_runs(directories, geometry_sidecars=None):
     return sorted(frames, key=lambda f: f['key']), {'detector': detector, 'inputs': manifests}
 
 
-def evaluate(frames, choices, cost):
+def evaluate(frames, choices, cost, global_sort=True):
     if not frames or len(frames) != len(choices) or not math.isfinite(cost) or cost < 0:
         raise ValueError('Invalid evaluation inputs')
     counts = [len(available_subsets(f['source_ids'])[a]) - 1 for f, a in zip(frames, choices)]
     qualities = [f['quality'][a] for f, a in zip(frames, choices)]
-    result = summarize_cached(aggregate_statistics(f['statistics'][a] for f, a in zip(frames, choices)))
+    result = summarize_cached(aggregate_statistics(f['statistics'][a] for f, a in zip(frames, choices)), global_sort=global_sort)
     result.update(frames=len(frames), peer_requests=sum(counts),
                   mean_peer_requests=float(np.mean(counts)),
                   request_histogram={str(k): counts.count(k) for k in range(3)},
@@ -184,7 +184,10 @@ def fit(train, validation, alphas, cost):
     return model
 
 
-def comparison(frames, provenance, seeds, model=None, diagnostic_cost=None, entropy_thresholds=(.5, .7), policy_seed=42):
+def comparison(frames, provenance, seeds, model=None, diagnostic_cost=None, entropy_thresholds=(.5, .7), policy_seed=42, global_sort=True):
+    def evaluate_policy(frames, choices, cost):
+        return evaluate(frames, choices, cost, global_sort=global_sort)
+
     if not seeds or len(set(seeds)) != len(seeds):
         raise ValueError('Predeclare distinct random seeds')
     low, high = entropy_thresholds
@@ -222,29 +225,29 @@ def comparison(frames, provenance, seeds, model=None, diagnostic_cost=None, entr
               'scope': 'cached offline replay; no online acquisition or network measurement',
               'training_surrogate': 'frame micro F1 at BEV IoU .5, not per-frame AP',
               'request_cost': cost, 'entropy_thresholds': list(entropy_thresholds), 'seeds': seeds,
-              'policy_seed': policy_seed,
+              'policy_seed': policy_seed, 'global_sort_detections': global_sort,
               'provenance': provenance, 'policies': {}, 'random_controls': {},
-              'hindsight_f1_reference_not_deployable': evaluate(frames, hindsight, cost),
+              'hindsight_f1_reference_not_deployable': evaluate_policy(frames, hindsight, cost),
               'hindsight_choices': dict(zip(keys, hindsight))}
     for name, choices in policies.items():
-        report['policies'][name] = evaluate(frames, choices, cost)
+        report['policies'][name] = evaluate_policy(frames, choices, cost)
         report['policies'][name]['choices'] = dict(zip(keys, choices))
     for name in ('entropy_subsets', 'learned_joint_gain'):
         if name not in policies:
             continue
         controls = {}
         for mode in ('schedule', 'budget'):
-            samples = [evaluate(frames, matched_random_subsets(ids, keys, policies[name], seed, mode), cost)
+            samples = [evaluate_policy(frames, matched_random_subsets(ids, keys, policies[name], seed, mode), cost)
                        for seed in seeds]
             controls[mode] = ensemble_summary(samples, seeds)
         report['random_controls'][name] = controls
     # The same controls also quantify the offline F1 reference's advantage; no
     # claim about a trained policy is inferred from this privileged comparison.
     report['hindsight_random_controls'] = {mode: ensemble_summary([
-        evaluate(frames, matched_random_subsets(ids, keys, hindsight, seed, mode), cost) for seed in seeds], seeds)
+        evaluate_policy(frames, matched_random_subsets(ids, keys, hindsight, seed, mode), cost) for seed in seeds], seeds)
         for mode in ('schedule', 'budget')}
     report['independent_random_subsets_p_half'] = ensemble_summary([
-        evaluate(frames, [random_subset(f['source_ids'], f['key'], seed) for f in frames], cost) for seed in seeds], seeds)
+        evaluate_policy(frames, [random_subset(f['source_ids'], f['key'], seed) for f in frames], cost) for seed in seeds], seeds)
     report['native_associations'] = {f['key']: f['native_association'] for f in frames}
     return report
 
