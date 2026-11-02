@@ -4,6 +4,33 @@ Updated: **2026-11-02**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Validation-only nonlinear policy pilot (2026-11-02)
+
+The first pilot job **21569029** failed during the scikit-learn import preflight,
+before any cache loading or training. The supplied log tail does not reveal the
+original ImportError. The revised batch entry point installs all five pinned
+scientific runtime packages into a fresh job-specific directory under
+`phdsim-work/dependencies`, verifies versions/module origins and a tiny model
+fit inside the existing container, then runs the pilot. It does not change the
+shared venv. The experiment output path remains unchanged because that failed
+preflight occurred before output creation. No real pilot results exist yet.
+
+The user authorized a cheap comparison of ridge and shallow boosted trees on
+the existing crossing1/2 training/validation caches, keeping the same 32
+Gain–Geometry features and request cost .05. The isolated runner and batch job
+are prepared, not executed on real caches. Three gain heads are independently
+fitted with availability masks. A fixed four-configuration tree grid and the
+existing ridge alphas are selected on validation utility; the best constant
+NO/Car2/Infra/ALWAYS baseline is also selected on validation. Exact matched
+random controls use seeds 0–99. See [tree pilot protocol](URBANING_TREE_PILOT.md).
+
+This pilot performs no new detector inference, downloads, pose exports or
+crossing3 evaluation, and does not modify the active experiment worktrees,
+models or jobs. Validation-selected performance is development evidence only;
+no new real results or model improvement are claimed. User-reported diagnostics
+job **21566813** was submitted after the full-policy collector; no completed
+diagnostic report has been supplied yet.
+
 ## Latest execution and diagnostic follow-up (2026-11-02)
 
 The user submitted full-policy array **21564341**, collector **21564342**, and
