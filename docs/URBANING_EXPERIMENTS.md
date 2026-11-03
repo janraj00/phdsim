@@ -1,5 +1,18 @@
 # UrbanIng-V2X experiment status
 
+## Current audited status — 2026-11-03
+
+The dated entries below describe earlier stages and do not represent current
+execution state. The full 1400-frame LiDAR CoBEVT report is completed: ALWAYS
+has mAP@.5 24.8134% with upstream-default ordering or 33.7102% with global sorting,
+from the same predictions. The default result is close to the checkpoint's
+24.8563% release reference. The two frozen learned acquisition policies do not
+beat their matched-budget random mean. Regional work is validation-only; a
+structural sum-pooling limitation was found, and its new-policy mAP is absent.
+No demonstrated acquisition improvement or every-fusion-method evaluation is
+claimed. See the [audit](URBANING_AUDIT_2026-11-03.md) and current
+[handoff](CONTEXT.md) for exact evidence and limitations.
+
 The current study uses the authors' frozen **LiDAR CoBEVT** detector for
 cooperative object detection and offline selective acquisition. Outputs are
 3D boxes with classes and scores; the reported metric uses **BEV polygon IoU**.

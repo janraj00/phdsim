@@ -1,5 +1,10 @@
 # Regional usefulness regression and feature ablations
 
+**Audit status (2026-11-03): development prototype.** The 23.4% number is only
+prediction MSE reduction. The subsequent affine predictor plus sum-pooling
+policy loses spatial binding; no acquisition advantage is established. See
+[audit findings and artifact repair](URBANING_AUDIT_2026-11-03.md).
+
 This is a development experiment on the verified regional dataset, with no
 detector calls. It trains on two original recordings (400 frames) and selects
 hyperparameters on one previously inspected validation recording (200 frames).
