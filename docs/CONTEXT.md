@@ -4,6 +4,39 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Audit verdict — authoritative current interpretation (2026-11-03)
+
+The user objected to inconsistent metrics and overstated intermediate progress,
+and authorized an audit rather than another experiment. See
+[the complete audit](URBANING_AUDIT_2026-11-03.md). No new detector job or fitting
+was performed. Historical entries below are a ledger, not independent successes.
+
+The checkpoint reference is close to the released eval file: upstream-default
+mAP@.5 24.8134% versus 24.8563%; global-sort mAP from the same predictions is
+33.7102%. Never mix these orderings or call their difference a model improvement.
+The 1400-frame report has consistent hashes/arithmetic and correct matched random
+budgets. Both original learned policies have lower mean mAP/F1 than budget random.
+Full raw-cache matching was not rerun locally; those original caches are on Ares.
+
+**A structural limitation was demonstrated in the regional prototype:** an
+affine per-cell predictor followed by sum pooling depends only on feature sums.
+Exchanging low/high scores between cells near opposite peers can change local
+maps while leaving all final action scores/decisions unchanged. It does not
+establish spatial need-to-partner reasoning. MSE improvement 23.4% is prediction
+error only. The five saved validation requests (1.50%) are not an independent
+acquisition advantage. New-policy mAP was promised without the necessary export.
+
+The repeated 200-frame validation is development-only; 400 training frames are
+two recordings, not independent cell samples. Test material was partly inspected
+before subsequent extensions. Random seed spread is not a confidence interval.
+One CoBEVT LiDAR checkpoint was evaluated, not every fusion method or RGB/thermal.
+
+Five of six shared archives passed integrity checks. The learning ZIP was
+damaged at its prediction NPZ; nine complete members including all models/report
+were CRC-recovered without changing their bytes. A compact repair omits that
+incomplete NPZ and records how to regenerate predictions without fitting.
+Preserve caches and historical results. No further model search is part of audit.
+
 ## Regional acquisition replay completed (2026-11-03)
 
 The user authorized the same F1/request-savings comparison for the new regional

@@ -1,5 +1,11 @@
 # Whole-frame replay of regional predictions
 
+**Audit status (2026-11-03): numerical replay reproduced, scientific limitation
+found.** Affine per-cell prediction followed by sum pooling discards the spatial
+association between need and peer geometry. The selected 1.50% validation saving
+is not evidence of a successful spatial acquisition method. New-policy mAP is
+missing. See [the complete audit](URBANING_AUDIT_2026-11-03.md).
+
 This continues the regional feature ablation with acquisition decisions. It
 uses the previously selected 46-feature predictor unchanged. Each action's
 signed predicted FP+FN reduction is summed over all 401 cells and four classes.
