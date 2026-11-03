@@ -39,7 +39,7 @@ def _inside(root, relative):
     return path
 
 
-def load_runs(directories, geometry_sidecars=None):
+def load_runs(directories, geometry_sidecars=None, progress=None):
     if geometry_sidecars is not None:
         from phdsim.experiments.urbaning_geometry import load_sidecars
         geometry = load_sidecars(geometry_sidecars)
@@ -103,6 +103,8 @@ def load_runs(directories, geometry_sidecars=None):
                 from phdsim.learning.urbaning_geometry import SCHEMA as GEOMETRY_SCHEMA
                 frame['feature_schema'] = GEOMETRY_SCHEMA
             current.append(frame)
+            if progress is not None:
+                progress(sequence, len(current), len(rows))
         if not current:
             raise ValueError('Empty cache')
         # Independent cached evaluator must reproduce every original fixed baseline.
