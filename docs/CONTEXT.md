@@ -4,6 +4,32 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## AP measurement completion verified (2026-11-03)
+
+Ares export **21577295** completed successfully in 2m01s. The user supplied
+`urbaning-ap-export.zip`: 1,737,081 bytes, SHA256
+`ce8893d439d446edf0cb328881a0b31523a138b1eed713b844f68e1da7e557c5`.
+Archive/code/source bindings and both-order baseline parity passed. The common
+evaluator replayed unchanged regional/ridge/tree validation choices and both
+100-seed matched controls locally with NumPy 1.26.4. No fitting or detector calls.
+
+On **200 validation crossing2 frames** (not the full crossing3 test), global-sort
+BEV mAP@.5 / requests: ALWAYS **37.6015% / 334**, regional audited prototype
+**37.5371% / 329**, prior ridge **36.9347% / 296**, prior tree **37.2465% / 313**.
+Regional saves 1.50% requests and loses .06448pp mAP versus ALWAYS. Its budget
+random mean is **37.3700%**, but its schedule random mean is **37.5503%**, both
+at 329 requests. Thus better F1 than schedule random did not mean better mAP.
+Prior ridge random means: budget 35.8588%, schedule 37.1092%; tree: 36.6280%,
+37.0627%. All are already-inspected, selection-used validation results.
+
+Default-order mAP remains separate: ALWAYS 27.4893%, regional 27.4813%, prior
+ridge 27.0681%, tree 27.1902%. Previous ridge/tree class AP reproduced exactly
+in both orders. Per-class AP, both controls and a Polish summary were bundled
+as `urbaning-common-ap-21577295.zip`. Missing regional AP is now completed;
+the structural pooling limitation and lack of independent evidence remain.
+No corrected spatial model has been trained. Earlier pending-export statements
+below describe the preparation stage and are superseded here.
+
 ## AP measurement completion prepared (2026-11-03)
 
 After the audit, the user authorized completing the missing AP export/common

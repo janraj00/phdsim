@@ -1,9 +1,41 @@
 # Portable AP export and common frozen-policy evaluator
 
-Prepared and locally tested on 2026-11-03. **The real 600-frame Ares export has
-not been run here, and the missing regional-policy mAP is not yet available.**
+Implemented and verified on real exported data on 2026-11-03. Ares job
+**21577295** completed the 400-train/200-validation export in 2m01s. Its ZIP
+SHA256 matched `ce8893d439d446edf0cb328881a0b31523a138b1eed713b844f68e1da7e557c5`
+and the common evaluator replayed the unchanged validation choices locally.
 This closes an evaluation-data gap found in the audit; it does not change the
 audited linear regional policy or establish a new method result.
+
+## Completed development-validation measurement
+
+All rows below use the same 200 crossing2 validation frames and frozen choices.
+Primary mAP is four-class global-confidence-sort BEV AP at IoU .5. These are
+not full crossing3 results or independently held-out evidence.
+
+| Policy | Primary mAP@.5 | Requests | Saved vs ALWAYS |
+|---|---:|---:|---:|
+| ALWAYS | 37.6015% | 334 | 0% |
+| Audited regional prototype | 37.5371% | 329 | 1.50% |
+| Prior ridge / Gain–Geometry | 36.9347% | 296 | 11.38% |
+| Prior tree | 37.2465% | 313 | 6.29% |
+
+| Policy | Policy mAP | Same-budget random mean | Same-schedule random mean |
+|---|---:|---:|---:|
+| Regional | 37.5371% | 37.3700% | 37.5503% |
+| Ridge | 36.9347% | 35.8588% | 37.1092% |
+| Tree | 37.2465% | 36.6280% | 37.0627% |
+
+Each random mean uses 100 seeds at its reference policy's exact request budget.
+The regional prototype has lower mean mAP than schedule random despite higher
+F1. This illustrates why F1 cannot replace the declared AP endpoint. Its .06448pp
+mAP loss versus ALWAYS accompanies only five saved requests. The spatial
+pooling limitation remains; no model, threshold or budget was tuned during replay.
+Prior ridge/tree class AP reproduced exactly in both orders. A detailed Polish
+summary, per-class results and all controls are in `urbaning-common-ap-21577295.zip`.
+
+Default-order mAP is separately 27.4893% for ALWAYS, 27.4813% for regional,
+27.0681% for ridge and 27.1902% for tree. Do not mix those values with the tables.
 
 ## Fixed metric contract
 
