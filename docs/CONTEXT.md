@@ -4,6 +4,31 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Regional acquisition replay completed (2026-11-03)
+
+The user authorized the same F1/request-savings comparison for the new regional
+predictor, with fair random controls. Its coefficients remain frozen. Sum signed
+predicted FP+FN reductions over all 401 cells/classes, then select one feasible
+whole-frame action with a per-peer error-count penalty. Fixed grid
+0/1/2/4/8/16/32/64 selects penalty 8 on validation F1 minus .05*requests. These
+are distinct units; the regional counts are not passed as F1 gains.
+
+On the same 200 validation frames, ALWAYS makes **334 requests**, F1 **67.4533%**;
+regional makes **329**, F1 **67.3785%**: only **five requests saved (1.50%)** and
+.07476pp F1 loss. It chooses Infra instead of both on five frames, and never NO.
+Penalty 16 saves 49.70% but drops F1 to 62.9455%; it is an unselected tradeoff.
+Prior ridge/tree counts and F1 were reproduced from their saved choices after
+exact provenance checks: ridge 296 requests/66.8805%, tree 313/67.0080%.
+
+100 exact budget-matched random controls average F1 **67.2597%** at the same
+329 requests; regional exceeds 92 draws. Schedule-matched controls average
+67.1036%; only five ambiguous single-peer choices exist (32 possible schedules,
+30 unique among 100 seeds). Random spread is not a recording confidence interval.
+This is validation-selected development evidence, not a crossing3 test result.
+**New-policy mAP remains unavailable locally**: counts lack per-detection scores.
+See [regional policy replay](URBANING_REGIONAL_POLICY.md). Earlier claims below
+that no acquisition replay exists are superseded here; no independent test exists.
+
 ## Completed regional feature-ablation pilot (2026-11-03)
 
 Regional dataset job **21576386** completed and its uploaded ZIP was audited:
