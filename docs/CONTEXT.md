@@ -1,8 +1,55 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-02**. This document summarizes the latest decisions in the
+Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Current objective, verified results and spatial inspection (2026-11-03)
+
+The user restated the main goal: Car1 should identify spatial regions with
+missing/uncertain information and predict whether another agent's particular
+sensor can improve the task there, before receiving its perception payload.
+Agents can own multiple modalities; RGB/thermal are later extensions. Global
+frame-level partner selection and class-wise reporting are intermediate steps.
+Low-score detections alone cannot represent entirely missed/occluded objects;
+do not claim to have a visibility/observability map from box summaries.
+
+The user supplied the completed **1400-frame full-policy report** (seven
+crossing3 sequences, five original recording groups). All-source predictions
+match the earlier benchmark numerically. Global-sort mAP@.5 / F1 / requests /
+utility at cost .05: ALWAYS **33.7102% / 54.5905% / 2033 / .473298**;
+Gain–Ego **33.1274% / 53.7529% / 1838 / .471886**;
+Gain–Geometry **32.2393% / 52.2992% / 1533 / .468242**. Both learned policies
+lose F1/utility to all 100 corresponding exact budget-matched random draws.
+Entropy's frozen thresholds reproduce ALWAYS. NO occurs only in 89 frames
+with no available partner; neither learned model skips all available peers.
+Car2 is available in 766 frames, Infra in 1267, both in 722. Direct partner
+quality comparisons must stratify availability.
+
+The GT-assisted offline F1-minus-cost reference uses **1306 requests** (35.8%
+less than ALWAYS), F1 **54.0039%**, global mAP@.5 **33.6362%**, utility **.493396**.
+This establishes hindsight headroom for that objective, not a deployable policy
+or an mAP optimum. Default-order mAP@.5 for ALWAYS is **24.8134%**; keep AP
+ordering explicit. The report was read from `urbaning-full-policy-report.zip`.
+No completed diagnostic report has yet been supplied.
+
+The validation tree pilot succeeded as job **21569108** after dependency
+isolation. On its 200 crossing2 validation frames, ridge alpha 10 won utility
+(.594805, F1 66.8805%, 296 requests) against the selected tree (.591830,
+67.0080%, 313 requests) and ALWAYS (.591033, 67.4533%, 334 requests).
+Its ridge weights/scaling equal the original Gain–Geometry model exactly;
+validation success therefore did not generalize to crossing3. Trees have not
+been evaluated on the full test in this report. These are validation-selected
+results, not an independent performance estimate.
+
+The user now authorized looking at concrete frames and where each source
+recovers/misses objects. A separate **train/validation-only** inspector is
+prepared, not run on real recordings. It exports full-scene/zoom comparisons,
+object-index match traces and a strict Car1-evidence versus offline-outcome
+boundary, bundled as one ZIP. It performs no inference/fitting/downloads and
+does not alter the completed experiment. See
+[frame inspection protocol](URBANING_FRAME_INSPECTION.md). Older preparation
+and pending-result statements below are superseded by this section.
 
 ## Validation-only nonlinear policy pilot (2026-11-02)
 
