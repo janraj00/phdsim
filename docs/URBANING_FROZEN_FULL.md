@@ -1,9 +1,80 @@
 # Frozen regional and tree policies on full crossing3
 
-Prepared on 2026-11-03; **not yet run on Ares**. This replay evaluates the two
+Completed on Ares on 2026-11-03: **job 21578375, 6m24s, exit 0**. This replay evaluates the two
 unchanged validation-stage models on all seven completed crossing3 caches:
 1400 frame records, five original recording groups. Crossing3 has already been
 inspected: this is an expanded frozen-policy evaluation, not a new blind test.
+
+## Verified full results
+
+Uploaded `urbaning-frozen-full.zip`: 3,175,911 bytes; SHA256
+`e7070e7bfc4743a7bba90310ce3a39ba893281c62c6f7c0e2a05c6c56472e802`.
+Archive CRC/member hashes and 1400 prediction bindings passed. The uploaded
+portable statistics reproduced all eight policies in both AP orders, and seed
+42 for each pure random probability. Original matched controls retain exact
+request totals and 0/1/2 histograms.
+
+Primary global-sort four-class BEV mAP@.5:
+
+| Policy | mAP (%) | Requests | Savings versus ALWAYS (%) |
+| --- | ---: | ---: | ---: |
+| Car1 | 23.9064 | 0 | 100.00 |
+| Infra | 31.7422 | 1267 | 37.68 |
+| Pure random p=.5, mean of 100 | 28.9725 | 1016.32 | 50.01 |
+| Pure random p=.75, mean of 100 | 31.4119 | 1523.43 | 25.06 |
+| Pure random p=.9, mean of 100 | 32.8147 | 1829.68 | 10.00 |
+| GainEgo | 33.1274 | 1838 | 9.59 |
+| GainGeometry | 32.2393 | 1533 | 24.59 |
+| Regional frozen prototype | 32.3282 | 1401 | 31.09 |
+| Tree frozen prototype | 32.5766 | 1488 | 26.81 |
+| ALWAYS | 33.7102 | 2033 | 0.00 |
+
+Both new policies outperform the prior GainGeometry point with fewer requests.
+Regional saves 632 requests versus ALWAYS at a 1.3820pp mAP reduction; tree saves
+545 at a 1.1335pp reduction. Pure p=.75 is lower in mAP and higher in mean requests
+than either model; this is descriptive comparison of observed costs.
+
+At exactly equal budgets, the original budget-random means are 31.9546%
+(regional, 1401 requests) and 32.2086% (tree, 1488 requests). Model advantages are
+**.3736pp** and **.3681pp**, above all 100 respective random draws. Schedule-random
+means are 32.2034% and 32.3202%; advantages .1248pp (86/100 draws below regional)
+and .2565pp (100/100 below tree, with a near tie against its best draw).
+These draws do not establish generalization or a recording-level p-value.
+
+Action interpretation matters. On the 722 both-available frames, tree chooses
+Infra alone 545 times and both 177; it never declines all peers or chooses only
+Car2. It always queries whichever sole partner is available. Regional chooses
+Infra 566, Car2 60, both 93, neither 3. Thus tree mainly adds Car2 to an Infra
+preference; this is not evidence of spatial information-gap reasoning.
+
+An **additional post-hoc descriptive control**, not part of the frozen protocol,
+retains Infra priority and randomizes the moments of extra Car2 requests:
+query Infra whenever available, otherwise available Car2 (base 1311 requests),
+then select uniformly without replacement 90 or 177 of the 722 both-available
+frames for Car2. Exact budgets are borrowed from the frozen policies, so this
+remains retrospective. A deterministic SHA256 ranking of
+`infra-priority:SEED:NATIVE_FRAME_KEY`, seeds 0–99, uses no GT or prediction.
+Mean global mAP is **32.1277% at 1401** and **32.3434% at 1488**. Regional/tree
+retain **.2006pp/.2332pp**, above all 100 respective draws. Preference for Infra
+explains part of the original random gap; a modest residual remains in this
+inspected sample. No training or threshold selection occurred in this analysis.
+
+Class AP@.5 (%), with the same confidence ordering:
+
+| Class | Car1 | Infra | ALWAYS | Regional | Tree |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Vehicle | 44.2226 | 60.0136 | 63.6482 | 61.5400 | 62.0076 |
+| Heavy_Vehicle | 25.3788 | 33.4749 | 33.1881 | 33.6171 | 33.6025 |
+| 2Wheeler | 25.1653 | 28.9349 | 32.5086 | 29.9320 | 30.3409 |
+| Pedestrian | .8589 | 4.5454 | 5.4957 | 4.2238 | 4.3556 |
+
+Both models are below Infra-only for pedestrians and slightly above ALWAYS for
+heavy vehicles. Both beat ALWAYS on only 2/7 sequences, not uniformly across
+recordings. Seven sequences come from five original recording groups; global
+AP is not an average of sequence AP. F1 remains separate: regional 52.2523%
+versus budget-random mean 52.3311%, tree 52.5964% versus 52.6563%. Better AP does
+not imply better F1. These are LiDAR/CoBEVT results, not all authors' methods or
+RGB/thermal fusion. The existing regional pooling limitation remains.
 
 No detector inference, fitting, threshold selection, geometry regeneration,
 package installation or upstream imports occur. The shared environment is not

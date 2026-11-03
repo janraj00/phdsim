@@ -4,13 +4,34 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
-## Frozen regional/tree full replay prepared (2026-11-03)
+## Frozen regional/tree full replay completed (2026-11-03)
 
 User requested the unchanged regional and tree policies on the full 1400-frame
 crossing3 inventory. The new runner reuses all completed prediction/pose caches,
 requires exact frozen input hashes and reproduces previous baseline/policy AP
 in both ordering modes. No detector, fitting, package installs or shared venv
-changes. **Prepared and tested; not yet submitted or completed on Ares.**
+changes. **Ares job 21578375 completed in 6m24s, exit 0.** Uploaded result
+ZIP SHA256 `e7070e7bfc4743a7bba90310ce3a39ba893281c62c6f7c0e2a05c6c56472e802`,
+3,175,911 bytes. Hash/CRC, 1400 payload bindings and both-order replay parity
+of all eight policies passed using the portable statistics.
+
+Full-test global mAP@.5 / requests: regional **32.3282% / 1401** (31.09%
+request saving versus ALWAYS), tree **32.5766% / 1488** (26.81%), ALWAYS
+**33.7102% / 2033**. Both are higher quality and lower cost than prior
+GainGeometry **32.2393% / 1533**. Pure independent random p=.75 averages
+**31.4119% / 1523.43**. Exact-budget controls average **31.9546% / 1401** and
+**32.2086% / 1488**: advantages .3736pp and .3681pp, above all 100 draws.
+This is randomization evidence on five already-inspected recording groups,
+not proof of generalization or a recording-level significance test.
+
+Tree always queries available Infra, and adds Car2 in 177/722 both-available
+frames; it never abstains when a peer exists. An explicitly **post-hoc** control
+with Infra priority and random timing of extra Car2, at equal total budgets,
+averages **32.1277% at 1401** / **32.3434% at 1488** over seeds 0–99. Regional
+and tree retain modest **.2006pp/.2332pp** advantages. Exact budgets are borrowed
+from policy outcomes; this is an offline diagnostic, not a deployable method.
+Both policies lose pedestrian AP versus Infra-only, and mean F1 is slightly
+below the original budget-random means. Keep these limitations alongside mAP.
 
 Pure independent random is a main comparison, not hidden behind model-conditioned
 controls. Predeclared p=.5/.75/.9 with seeds 0–99; matched budget/schedule remain
