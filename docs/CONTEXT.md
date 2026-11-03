@@ -4,6 +4,33 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Regional dataset preparation (2026-11-03)
+
+Inspection job **21574240** completed in 2m18s (exit 0). The uploaded
+`urbaning-frame-inspection.zip` contains five selected validation cases and
+all 200 frame match traces. In frame 161, GT object 2 is Vehicle at about 67m
+from Car1. Car1 has no overlapping prediction, Car1+Car2 reaches IoU .532,
+Car1+Infra's best overlap is .412 and all sources .503. This is a qualitative
+GT-selected case, not proof of visibility or a general partner ranking. The
+NO-beneficial category had three positive candidates but was omitted by spacing;
+do not claim it was absent from the recording.
+
+The user approved the next concrete step: prepare fixed regional inputs and
+offline targets from the existing **400 train / 200 validation** frames. The
+exporter is prepared, not yet run on real full recordings. It retains all 400
+fixed 10m cells plus explicit overflow, uses only Car1 detections and assumed
+pose/availability metadata as 46 input features, and exports GT-derived regional
+TP/FP/FN, recovered/lost objects and deltas separately. Count conservation must
+reproduce full-frame matching. Unavailable action masks are mandatory; no GT-driven
+cell selection or per-cell communication charge is allowed. There is no fitting,
+inference, download or crossing3 access. See
+[regional dataset protocol](URBANING_REGIONAL_DATASET.md).
+
+This is input/label preparation, not a learned information-deficit map or a
+new performance result. Empty detection cells do not establish observability.
+The intended next learner can predict local partner usefulness after checking
+these labels; raw LiDAR coverage and RGB/thermal remain later steps.
+
 ## Current objective, verified results and spatial inspection (2026-11-03)
 
 The user restated the main goal: Car1 should identify spatial regions with
