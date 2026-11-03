@@ -4,6 +4,21 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Frozen regional/tree full replay prepared (2026-11-03)
+
+User requested the unchanged regional and tree policies on the full 1400-frame
+crossing3 inventory. The new runner reuses all completed prediction/pose caches,
+requires exact frozen input hashes and reproduces previous baseline/policy AP
+in both ordering modes. No detector, fitting, package installs or shared venv
+changes. **Prepared and tested; not yet submitted or completed on Ares.**
+
+Pure independent random is a main comparison, not hidden behind model-conditioned
+controls. Predeclared p=.5/.75/.9 with seeds 0–99; matched budget/schedule remain
+secondary. Primary: global-sort four-class BEV mAP@.5 plus requests/savings.
+The regional model retains its known spatial pooling limitation and penalty 8;
+the tree retains F1 cost .05. Do not tune either on crossing3, which has already
+been inspected. See [full frozen replay](URBANING_FROZEN_FULL.md).
+
 ## AP measurement completion verified (2026-11-03)
 
 Ares export **21577295** completed successfully in 2m01s. The user supplied
