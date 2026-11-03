@@ -4,6 +4,36 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Completed regional feature-ablation pilot (2026-11-03)
+
+Regional dataset job **21576386** completed and its uploaded ZIP was audited:
+400 train / 200 validation frames, exact file hashes, identities, availability,
+TP/FP/FN conservation and recovery/loss bindings. Validation frame F1 reconstructed
+from regional counts equals the earlier tree pilot. Overflow target counts are
+zero in these recordings. The 46 features are manually engineered hypotheses,
+not a feature set supplied by the UrbanIng paper.
+
+The user authorized fitting the first regional learner. A NumPy ridge experiment
+ran directly on that ZIP locally in about five seconds, with no new Ares job,
+detector calls or crossing3 access. Three directly supervised action heads predict
+per-class regional **FP+FN reduction**. Train-only scaling, unavailable-action
+masks and recording splits are enforced. Fixed alpha grid .01/.1/1 selects by
+validation macro MSE; this is not acquisition policy selection.
+
+Validation MSE: zero **.049041**, training mean **.048335**, geometry **.047468**,
+local evidence **.041654**, combined **.041330**, plus neighbors **.041260**,
+full class-aware 46 features **.037557** (alpha .1). Full improves this prediction
+error 23.4% versus zero, **not detection F1/AP**. Changed-cell MSE improves
+1.562838→1.131719, but harm-cell MSE worsens 1.278871→1.602021. Empty-Car1
+regions improve minimally or not at all: most signal remains in regions with
+existing detections. The information-deficit goal is therefore not solved.
+
+Five models, predictions, a fixed example map and detailed stratified report
+are generated. No independent test or new request/F1/AP/utility result exists.
+The one validation recording has already been inspected; avoid treating it as
+unseen. See [regional learning protocol](URBANING_REGIONAL_LEARNING.md).
+Earlier preparation statements below are superseded by this section.
+
 ## Regional dataset preparation (2026-11-03)
 
 Inspection job **21574240** completed in 2m18s (exit 0). The uploaded
