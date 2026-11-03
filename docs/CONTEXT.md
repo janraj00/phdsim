@@ -4,6 +4,32 @@ Updated: **2026-11-03**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## AP measurement completion prepared (2026-11-03)
+
+After the audit, the user authorized completing the missing AP export/common
+evaluator first. `scripts/urbaning_ap_replay.py export` reads the existing two
+training caches (400 frames) and validation cache (200), verifies original fixed
+baseline AP/GT/fallbacks and writes portable per-detection confidence/TP/FP/GT
+statistics with exact frame/run/trace/payload bindings. No detector, fitting,
+downloads, environment changes or crossing3 access occurs. The final ZIP is
+re-read and checked before DONE. One Ares worker job is prepared; **the real
+600-frame export has not been run from this session**.
+
+The common evaluator reuses the existing cached evaluation function. It accepts
+frozen choices, keeps global-confidence-sort BEV mAP@.5 primary and upstream
+default AP separate, includes class AP/F1/request diagnostics, and performs
+exact budget/schedule controls. Prior ridge/tree choices must reproduce both
+stored AP orders; the audited regional prototype retains frozen F1/requests.
+There is no model/budget/threshold selection. The corrected spatial learner
+is not implemented by this step. Missing regional AP is **still pending the
+real Ares export**, not a new completed result.
+
+Local validation covers fixture export/readback, nontrivial AP ordering, split,
+hash and source guards, old-policy adapters, missing classes and matched controls.
+Five supplied real inspection cases reproduced 20 class-count/frame-F1 outcomes;
+these selected cases do not replace full-cache parity. See
+[AP export/replay protocol](URBANING_AP_REPLAY.md) and the audit below.
+
 ## Audit verdict — authoritative current interpretation (2026-11-03)
 
 The user objected to inconsistent metrics and overstated intermediate progress,
