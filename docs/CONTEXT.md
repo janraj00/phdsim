@@ -4,6 +4,34 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Gap/source pilot trained and reviewed (2026-11-04)
+
+User authorized the next pilot. Completed locally on existing export: 400 train
+frames (two recordings), 200 validation (one inspected recording), no crossing3
+payload access or detector calls. Three fixed-capacity ExtraTrees profiles:
+geometry 20 features, local Car1 26, combined 46. Each has one gap classifier
+and three separately supervised signed local FP+FN reduction heads. No tuning
+or validation-selected winner. Frozen portable JSON weights match sklearn.
+
+Correct gap regions among top10: pure random **.672**, geometry **3.585**,
+local **4.660**, combined **4.485**. Empty-only top10: random **.386**,
+geometry **2.815**, local **1.490**, combined **2.355**. Combining features does
+not uniformly improve localization; geometry is best for empty-only regions.
+
+Read-only review couples predicted gap top10 with predicted best feasible
+subset. A success requires >=1 recovered Car1 miss AND positive local FP+FN
+reduction. Successes per10: geometry **2.460**, local **2.045**, combined
+**2.220**, pure random **.276**. Same-region random-source expectations are
+2.198 / 1.750 / 1.940. These are region/source ranking diagnostics, **not new
+detection mAP, query savings or ROI transmission performance**. No costs yet;
+the 'both' source subset is feasible. Whole-frame outcomes cannot be mixed
+across cells and treated as detector output.
+
+Review ZIP SHA256 `f269aec67685dfa6aed1fa194facdcfb984a0dab9e0bc518101ce8faea739f2d`,
+4,986,101 bytes, preserves original frozen weights/results and stricter review.
+See [gap pilot](URBANING_GAP_PILOT.md). Next: define whole-frame aggregation and
+costs on development data before common mAP replay and future unseen recordings.
+
 ## Conditional gap diagnostic completed (2026-11-04)
 
 No fitting or crossing3 payload access. A post-hoc Car2 near (<40m)/far split,
