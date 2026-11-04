@@ -4,6 +4,27 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Zero-cost randomized/group/class follow-up prepared (2026-11-04)
+
+User authorized an Ares job for the inspected cost0 point. Prepared
+`urbaning_zero_cost.sbatch`: reuse existing21586593 spatial score ZIP and21578375
+portable outcomes in place. No new upload, training, model/detector inference,
+new cost selection, installs or shared environment change. Verify original
+cost.5 choices and old-policy AP; reproduce observed cost0 total1813.
+
+Two100-seed exact1813-query controls: uniform feasible query events, and strong
+secondary Infra-priority/Car2-fallback plus502 random Car2 extras among722
+both-available frames. Neither receives model timing/GT. Primary mAP@.5,
+requests/savings/loss; class AP and all7 sequences/5 original recording groups,
+both AP modes. Equal cost is global only; subgroup queries are reported. Pure
+independent random remains visible. Seed spread is not recording-level confidence.
+This is post-hoc after inspecting cost0, not a new blind/validation-selected test.
+
+Three focused tests and shell syntax passed; real-input two-seed end-to-end
+smoke covers exact1813, controls, class/group outputs and identical resume.
+**Full100-seed follow-up has not run/submitted from this session.** No random,
+class or group result is claimed yet. See [zero-cost follow-up](URBANING_ZERO_COST.md).
+
 ## User-requested zero-cost full diagnostic (2026-11-04)
 
 The user asked about not subtracting query costs. Read-only replay from frozen
