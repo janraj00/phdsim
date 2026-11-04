@@ -4,6 +4,21 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Gap acquisition replay prepared for Ares (2026-11-04)
+
+After a conversation interruption, the user requested moving computation to Ares.
+Prepared a resumable CPU job to turn the unchanged three spatial profiles into
+one whole-frame action, compare top10 gap-selected cells versus all400 pooling,
+and select fixed cost-grid points under .5/1/1.5 requests/frame on the existing
+200-frame development validation. Primary global-sort BEV mAP@.5 plus requests,
+pure independent random prominent, exact-total offline random secondary.
+No refitting, detector, crossing3 payloads, installs or shared venv changes.
+Input ZIP SHA256 `c1e72f33bdbd61edab2773bac81d2f582b88ed4d625e9743c35ac194d8bb50ee`,
+13,257,571 bytes. Five focused tests, shell syntax and real-input AP/frame-binding/
+checkpoint smoke checks passed. **The full replay has not run; no job submitted
+from this session and no new final policy mAP/query result exists.** See
+[submission and resume guide](URBANING_GAP_ACQUISITION.md).
+
 ## Gap/source pilot trained and reviewed (2026-11-04)
 
 User authorized the next pilot. Completed locally on existing export: 400 train
