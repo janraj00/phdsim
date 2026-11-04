@@ -4,6 +4,35 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Zero-cost controls/classes/recordings completed (2026-11-04)
+
+Ares **21587032** completed in7m19s, exit0. Output ZIP SHA256
+`f014f2fa71da358961d90e9f5c4d9459fa9b233a8b3cc26d065fa6b058dfc9a3`,
+2,486,881 bytes. CRC/member/code hashes verified; all10 policy AP results
+replayed across full1400,7 sequences,5 recording groups in both modes. Both
+100-seed schedules/costs and all summary arithmetic verified; control AP sampled
+at seeds0/99 across all scopes and both modes. No fitting or detector.
+
+Cost0 remains **33.6741% mAP /1813 queries**, ALWAYS **33.7102%/2033**:
+220 saved (**10.82%**) at **.0361pp** observed mAP loss. Uniform exact1813
+random mean **32.7412%** (+.9329pp policy); strong Infra-priority/fallback plus
+random Car2 extras mean **33.1509%** (+.5232pp policy). Above all100 draws of
+both controls, but not a recording-level significance test. Pure p=.9 remains
+32.8147%/1829.68. Thus selection adds observed value beyond simple Infra
+priority at equal global cost. This cost0 follow-up is **post-hoc after test
+inspection**, not newly validation-selected or blind/generalization evidence.
+
+Class AP versus ALWAYS: Vehicle **-.2502pp**, Heavy_Vehicle **+.9117pp**,
+2Wheeler **-.2721pp**, Pedestrian **-.5337pp** (5.4957→4.9620%). Near-equal
+macro mAP hides class tradeoffs, not statistical equivalence. Across5 original
+groups:0009 +1.4521pp/114 queries saved;0010 -.1035pp/28 saved;0011 -.5344pp/27
+saved;0012 unchanged/no saving;0024 -.1247pp/51 saved. Model beats strong
+random mean in4/5 groups, but subgroup budgets differ; equal cost is global
+only. Full AP is not the arithmetic mean of group AP. Preserve earlier cost.5
+32.6966%/1448 (28.78% saving,1.0136pp loss) separately. Best model uses geometry,
+not current Car1 evidence; no ROI, causal visibility, bytes/latency or available-
+peer abstention claim. See [completed follow-up](URBANING_ZERO_COST.md).
+
 ## Zero-cost randomized/group/class follow-up prepared (2026-11-04)
 
 User authorized an Ares job for the inspected cost0 point. Prepared
