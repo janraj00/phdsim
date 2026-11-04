@@ -4,6 +4,29 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Hybrid gap/partner-stage validation prepared (2026-11-04)
+
+User asked to incorporate current Car1 evidence into the geometry-only selection.
+Prepared `urbaning_gap_hybrid.sbatch` for200 crossing2 development-validation
+frames: frozen local gap head selects10/all400 fields, frozen geometric subset
+benefit heads score them, one whole-frame action after cost. Fixed2x2 comparison
+also includes geometry/geometry, local/local and reverse geometry/local. No new
+training, detector, installs, crossing3 access or file upload. Existing Ares input
+packet and validation21586379 result provide all verified sources.
+
+Primary comparison uses common cost.5; actual query counts can differ. Secondary
+same old cost-grid/caps select12 configurations on development mAP, then freeze
+all settings and original weights before random controls. Pure independent random
+is reused; exact-total controls stay secondary. Both homogeneous pairs must
+reproduce old choices/AP at every cost. Report global-sort mAP@.5/requests/savings/
+loss, both AP modes and class AP; never use F1 as primary. No new blind-test claim
+for previously inspected development or crossing3 data.
+
+All16 gap-related tests and shell syntax passed; real-input reduced-grid/two-seed
+smoke covers four pairings, old-control parity, report/deployment ZIP integrity
+and identical resume. **Full hybrid experiment not yet run/submitted from this
+session**. No improvement claimed. See [hybrid protocol](URBANING_GAP_HYBRID.md).
+
 ## Full crossing3 spatial replay completed (2026-11-04)
 
 Ares **21586593** completed in8m16s, exit0. ZIP SHA256
