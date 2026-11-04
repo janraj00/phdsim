@@ -4,6 +4,23 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Conditional gap diagnostic completed (2026-11-04)
+
+No fitting or crossing3 payload access. A post-hoc Car2 near (<40m)/far split,
+overlap-weighted within GT-class / Car1-distance / empty-low-high-score strata,
+retains the recovery association in both training recordings and validation:
+70.91% vs 29.37%, 68.89% vs 14.97%, and 50.78% vs 13.75%, respectively.
+GT class is an offline diagnostic variable, never a runtime feature of a missed
+object. These are coarse descriptive adjustments, not causal estimates or
+confidence intervals. Validation common support covers 6698/8086 misses.
+
+Only 2741/71196 **empty detection cells (3.85%)** contain a missed GT, despite
+those cells holding **50.63% of all missed appearances**. This distinguishes
+gap-localization risk from source recoverability conditional on a miss. Next
+proposed pilot separates those questions, using GT for targets only, and checks
+geometry-only/local-only/nonlinear-combined variants on development data.
+No new spatial learner has been fitted or validated.
+
 ## Descriptive gap analysis completed (2026-11-04)
 
 User requested characterizing recoverable missing information and a complete

@@ -83,13 +83,50 @@ All grid summaries use fixed 10m cells and distinguish unavailable peer masks.
   differ between Car2 and Infra denominators; only the matched 134-frame subset
   supports direct same-frame source comparison.
 
-## Next diagnostic, not yet completed
+## Conditional descriptive check completed (2026-11-04)
+
+The Car2 proximity association was checked separately on both training
+recordings and the validation recording, with no model fitting and no crossing3
+payload access. Near means cell-center distance to Car2 **<40m**, far >=40m.
+This is a post-hoc diagnostic split, not a selected acquisition threshold.
+
+Strata combine GT class, Car1 cell-center distance in 20m bands (with >=100m
+separate), and Car1 empty / minimum-score-below-.5 / minimum-score-at-least-.5
+state. Only Car2-available spatial cells contribute. Each stratum records the
+number of missed GT appearances and Car2 recoveries in near/far groups. Retain
+strata with positive FN support in both groups; weight each side's recovery
+rate by the minimum FN support of those groups. These overlap-weighted rates
+compare measured groups; they are not exact object matching, causal effects,
+calibrated runtime probabilities or confidence intervals.
+
+| Recording | Split | Near weighted recovery (%) | Far weighted recovery (%) | Common strata |
+| --- | --- | ---: | ---: | ---: |
+| 20241126_0017_crossing1_00 | Train | 70.91 | 29.37 | 38 |
+| 20241126_0001_crossing2_00 | Train | 68.89 | 14.97 | 31 |
+| 20241126_0004_crossing2_00 | Validation | 50.78 | 13.75 | 38 |
+
+Validation common-support strata contain 3023 near and 3675 far missed GT
+appearances (6698/8086), with summed overlap weights 2132. GT class is available
+only to this offline diagnostic; the acquisition policy cannot receive the
+class of a missed object as input. Original recordings, rather than cells or
+consecutive frames, remain the independent units for future generalization.
+
+A complementary denominator matters for gap localization. Of the 71196 empty
+Car1-detection spatial cells in validation, only **2741 (3.85%)** contain any
+missed GT. Yet those cells contain 4094/8086 (50.63%) of missed appearances.
+The corresponding proportions of cells containing a missed GT are 36.16% for
+low-score occupied cells (2263/6259) and 14.73% for high-score occupied cells
+(375/2545). Thus neither querying all empty cells nor limiting attention to
+existing low-score boxes solves spatial gap selection. Risk localization and
+source recoverability are distinct prediction questions.
+
+## Next experiment, not yet trained
 
 1. Build a per-region gap label and a separate per-source recoverability label,
    retaining no-gap, recoverable, unrecoverable and harmful-query cases.
-2. Cross-tab or model Car2 distance jointly with Car1 distance, class and local
-   score/empty-cell evidence; report support and original recording identity.
-   This checks whether the distance association survives measured confounders.
+2. Extend the completed coarse cross-tab with recording-aware predictive tests.
+   Report support, calibration/ranking and original recording identity, while
+   keeping GT class and GT-derived miss status out of runtime inputs.
 3. Evaluate geometry-only, local-evidence-only and interaction models on
    separate development recordings before freezing a protocol for new footage.
    GT/peer predictions supply offline targets only. The current linear pooled
