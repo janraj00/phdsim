@@ -1,6 +1,6 @@
 # Separate current Car1 gap localization from geometric partner benefit
 
-Status: **prepared, not a completed experiment** (2026-11-04). The user asked how
+Status: **Ares job21586927 completed and checked** (2026-11-04). The user asked how
 to incorporate current Car1 evidence after the geometry-only full replay.
 This is an additional **development-validation** experiment on the original
 200 crossing2 frames, not a new full1400 result or an independent blind test.
@@ -98,3 +98,57 @@ only the exact development reference is accepted. All16 gap-related tests and
 bash syntax passed. A real-input, reduced-grid/two-seed smoke test exercises all
 four stage combinations, homogeneous parity, report/deployment ZIP hashes and
 identical resume. The full fixed protocol remains an unrun Ares experiment.
+
+## Completed Ares validation — job21586927
+
+Completed in50s, Slurm exit0. Uploaded result SHA256
+`f7ea1bdce81ac9a98df07367c2b60fb3e107b171e693be5daaa667461b4a7677`,
+2,426,684 bytes. ZIP CRC/member hashes, original model bytes, deployment SHA
+and implementation hashes passed. All40 candidate AP outcomes reproduced in
+both orders, all8000 action decisions reproduced from the frozen public scores,
+and all12 budget selections reproduce the declared rule. Secondary controls
+checked independently at seeds0/99 in both AP modes. No new fitting/detector
+or crossing3 access. This remains the same200-frame development validation.
+
+### Common unchanged cost .5
+
+| Gap localization | Partner-benefit scoring | mAP (%) | Queries |
+|---|---|---:|---:|
+| geometry | geometry | 36.0361 | 271 |
+| local | local | 37.6039 | 333 |
+| local | geometry | 32.1397 | 242 |
+| geometry | local | 32.4011 | 234 |
+
+### Cost-selected points under the300-query validation cap
+
+| Gap localization | Partner-benefit scoring | Error cost | mAP (%) | Queries | Same-total random mean mAP (%) |
+|---|---|---:|---:|---:|---:|
+| geometry | geometry | 0.5 | 36.0361 | 271 | 34.8337 |
+| local | local | 2 | 35.4918 | 283 | 35.4288 |
+| local | geometry | 0.25 | 34.1327 | 288 | 35.6541 |
+| geometry | local | 0.25 | 34.7960 | 277 | 35.1287 |
+
+### Interpretation
+
+The proposed local-gap/geometric-benefit composition **did not improve the
+validation tradeoff**. Even after selecting its cost within the original grid,
+it yields34.1327% at288 queries, versus36.0361% at271 for geometry/geometry:
+**1.9035pp lower mAP and17 additional queries**. The reverse pairing is also
+dominated at this cap:34.7960%/277. Both mixed selected points are below their
+secondary exact-total random means (35.6541% and35.1287%, respectively).
+At unchanged cost.5, the proposed hybrid gets32.1397%/242, also below its
+same-total random mean33.4925%. Different query counts at common cost prevent
+calling the mAP difference alone a controlled quality loss at equal expenditure.
+
+Local/local at cost.5 is practically ALWAYS:37.6039%/333 versus37.6015%/334.
+The .0024pp advantage with one saved query is not a substantial acquisition
+gain. Under cap300 its selected point remains35.4918%/283, as previously.
+
+Ranking more fields that contain Car1 misses does not by itself establish that
+a specific partner can recover those misses or improve global AP. This is a
+reason to investigate supervision/compatibility, not a demonstrated causal
+explanation of the hybrid result. A proposed future target could distinguish
+partner-recoverable gaps from all misses; no new target/model has been trained.
+Do not present this failed composition as evidence that current Car1 evidence
+is universally useless. No hybrid crossing3 run has been performed or proposed
+as an automatic next job; preserve the earlier full geometry result separately.

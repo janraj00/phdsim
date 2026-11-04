@@ -4,6 +4,31 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Hybrid stage validation completed — no improvement (2026-11-04)
+
+Ares **21586927** completed in50s, exit0. ZIP SHA256
+`f7ea1bdce81ac9a98df07367c2b60fb3e107b171e693be5daaa667461b4a7677`,
+2,426,684 bytes. CRC/member/model/deployment/code hashes passed. All40 candidate
+AP results and8000 decisions reproduced; all12 selections match the declared
+validation rule. Random controls independently checked at seeds0/99. Scope:
+**same200 crossing2 development frames**, not1400 crossing3, no refitting.
+
+Proposed local-gap/geometry-benefit composition did not help. At fixed cost.5:
+**32.1397%/242** versus geometry/geometry **36.0361%/271**; different counts.
+Under original cap300, selecting original cost-grid points yields local/geometry
+**34.1327%/288**, dominated by geometry/geometry **36.0361%/271** (1.9035pp lower
+mAP,17 more queries). Reverse geometry/local **34.7960%/277** also dominated.
+These two mixed points are below exact-total random means35.6541%/35.1287%.
+Local/local at cost.5 **37.6039%/333** is practically ALWAYS37.6015%/334;
+.0024pp at one saved query is not a substantial acquisition gain. Under cap300
+local/local remains35.4918%/283. No hybrid1400 evaluation has been performed.
+
+Gap localization and partner-recoverable utility are different targets. Their
+mismatch is a hypothesis to investigate, not a proven causal explanation or
+proof current Car1 evidence cannot help. No further target/model training has
+been performed. Preserve the existing full geometry32.6966%/1448 result; do not
+mix datasets or claim this pilot improved it. See [hybrid results](URBANING_GAP_HYBRID.md).
+
 ## Hybrid gap/partner-stage validation prepared (2026-11-04)
 
 User asked to incorporate current Car1 evidence into the geometry-only selection.
