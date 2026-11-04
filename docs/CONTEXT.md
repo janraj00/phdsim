@@ -4,6 +4,26 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Full crossing3 spatial replay prepared (2026-11-04)
+
+User authorized a job for the new policies on the **same 1400 crossing3 frames**
+as older results. Prepared `scripts/slurm/urbaning_gap_full.sbatch`: reads the
+existing Ares validation output21586379 and full portable outcome ZIP21578375
+in place, verifies exact hashes, keeps all18 frozen costs/weights and declares
+geometry/top10/cost.5 as the primary transfer point. No new upload is needed.
+Historic validation caps are labels, not constraints enforced on crossing3.
+No refitting, tuning, detector, installs or shared venv changes. No new blind-test
+claim for previously inspected crossing3. Main global-sort mAP@.5 and requests;
+pure independent random plus secondary fixed-total random, both AP orders,
+class/sequence results and old-policy comparisons. Atomic spatial/AP checkpoints.
+
+Local checks: four focused fixture/boundary tests plus the existing gap tests,
+shell syntax, real frozen model/config loading, and all eight historical policy
+AP results reproduced on the exact portable1400 outcomes in both orders.
+Raw Car1/pose inputs are only on Ares; **the new full spatial replay has not run
+and no job has been submitted from this session**. Worker upper limit4h,
+4CPUs/12GB; actual duration unknown. See [full replay guide](URBANING_GAP_FULL.md).
+
 ## Gap acquisition validation completed (2026-11-04)
 
 Ares job **21586379** completed; supplied ZIP SHA256
