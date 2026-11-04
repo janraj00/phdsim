@@ -4,6 +4,34 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Gap acquisition validation completed (2026-11-04)
+
+Ares job **21586379** completed; supplied ZIP SHA256
+`78c2e20d12acb3334931d0ca763e0cf4d414f2ba7779ef0c67e95869416e8786`,
+3,345,608 bytes. CRC/member/model/implementation hashes passed. All 60 candidate
+AP results reproduced in both ordering modes; all 18 selections match the fixed
+cost/budget rule. Pure and exact-total random controls checked at seeds 0/99.
+No detector, refitting or crossing3 access. Scope remains the **same inspected
+200-frame crossing2 development validation**, where costs were selected.
+
+Best selected mAP under cap 300: **geometry / ten gap-selected cells**,
+cost .5, **36.0361% mAP / 271 requests**, versus ALWAYS **37.6015% / 334**:
+63 requests saved (18.86%), 1.5654pp mAP lost. Same-total random mean **34.8337%**,
+a +1.2024pp policy advantage; above all 100 draws, not a recording-level p-value.
+Pure independent random p=.75: **33.9805% / 250.65**; p=.9: **36.1704% / 300.48**.
+Policy chooses Car1+Car2 / Car1+Infra / both on 75/54/71 frames, never NO here.
+This is a transfer candidate, not independent generalization evidence.
+
+Local/top10: 35.4918% / 283; combined/top10: 34.4460% / 252. All400 pooling:
+geometry 31.5265% / 235, local 34.7184% / 260, combined 33.0712% / 244.
+These use different actual query counts and are not equal-cost ablations.
+Combined/top10 at cap200 is worse than constant Car1+Car2 at equal 200 queries.
+Heavy_Vehicle AP improves in geometry/top10 versus ALWAYS; other three class
+APs drop. No stronger Infra-priority control at cost271 was measured. Full
+selected settings/model packet are frozen for subsequent unchanged replay;
+previously inspected crossing3 cannot become a newly blind test.
+See [complete validation tables](URBANING_GAP_ACQUISITION.md).
+
 ## Gap acquisition replay prepared for Ares (2026-11-04)
 
 After a conversation interruption, the user requested moving computation to Ares.

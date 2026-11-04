@@ -1,8 +1,8 @@
 # Frozen spatial scores to whole-frame acquisition — Ares validation replay
 
-Status: **prepared and smoke-tested, not a completed experiment** (2026-11-04).
+Status: **Ares validation replay completed and checked** (2026-11-04).
 The user requested moving computation to Ares after the cloud conversation
-was interrupted. No job has been submitted from this session. This is the
+was interrupted. Ares job **21586379** produced the verified output. This is the
 200-frame crossing2 development validation, not the 1400-frame crossing3 replay.
 
 ## Fixed experiment
@@ -104,7 +104,7 @@ sbatch -A plgkgacq-cpu scripts/slurm/urbaning_gap_acquisition.sbatch \
 
 The worker requests 4 CPUs / 12 GB / a 2-hour upper limit, not an estimated
 duration. It uses the established `bin/urbaning-python.sh` worker wrapper.
-Actual runtime has not been measured. Look for `REPLAYED`, `PURE RANDOM`,
+Job elapsed time was not included in the supplied completion excerpt. Look for `REPLAYED`, `PURE RANDOM`,
 `RANDOM n/100 seeds`, then final `DONE` and output SHA. This is cached AP replay,
 not the previous multi-hour detector pass.
 
@@ -131,3 +131,97 @@ traversal rejection. Bash syntax passed. A real-input smoke test verified
 train/validation baseline AP in both orders, all 200 validation payload/frame
 bindings, one real action list's AP and checkpoint reuse. It did not perform
 the full cost-grid/random experiment or select final policies.
+
+## Completed Ares validation result (job 21586379)
+
+The uploaded output passed SHA256/CRC and every member hash. ZIP SHA256
+`78c2e20d12acb3334931d0ca763e0cf4d414f2ba7779ef0c67e95869416e8786`,
+3,345,608 bytes. Original frozen model and deployment hashes match. All 60
+candidate AP results reproduced in both ordering modes; all 18 selected
+profile/aggregation/budget points reproduce the declared selection rule.
+Random seeds 0 and 99 were independently replayed in both orders for every
+pure-random probability and all 17 exact-total controls. This is a sampled
+random-parity check, not a claim to rerun all 100 seeds locally.
+
+All numbers below are **200-frame, previously inspected development validation**,
+with costs selected on these same frames. They are not the older full crossing3
+results, an independent test or a new blind evaluation. Main metric is global-sort
+four-class BEV mAP@.5. No detector or fitting was repeated.
+
+### Fixed and independent random references
+
+| Policy | mAP (%) | Requests |
+|---|---:|---:|
+| ego | 21.5380 | 0 |
+| vehicle_peer | 31.7884 | 200 |
+| infrastructure | 29.7240 | 134 |
+| all | 37.6015 | 334 |
+| infrastructure_otherwise_other | 31.2461 | 200 |
+| vehicle_peer_otherwise_other | 31.7884 | 200 |
+| Independent random p=0.25, 100-seed mean | 25.7835 | 82.87 |
+| Independent random p=0.5, 100-seed mean | 29.9324 | 166.12 |
+| Independent random p=0.75, 100-seed mean | 33.9805 | 250.65 |
+| Independent random p=0.9, 100-seed mean | 36.1704 | 300.48 |
+
+### All predeclared budget selections
+
+The same ten cells selected by the profile's predicted gap score are used for
+all subset heads. The ten are selected from **all 400 geographic cells**, not
+only cells without Car1 detections. Every outcome is one whole-frame fusion
+action. A cell proposal is not charged as a separate query.
+
+| Profile | Cells aggregated | Query cap | Error cost | mAP (%) | Requests | Savings vs ALWAYS (%) | mAP loss (pp) | Same-total random mAP mean (%) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| Geometry | 10 gap-selected from 400 | 100 | 4 | 22.9719 | 35 | 89.52 | 14.6297 | 23.3495 |
+| Geometry | 10 gap-selected from 400 | 200 | 1 | 30.9157 | 184 | 44.91 | 6.6858 | 30.8401 |
+| Geometry | 10 gap-selected from 400 | 300 | 0.5 | 36.0361 | 271 | 18.86 | 1.5654 | 34.8337 |
+| Geometry | All 400 | 100 | 32 | 21.5380 | 0 | 100.00 | 16.0635 | 21.5380 |
+| Geometry | All 400 | 200 | 16 | 29.7240 | 134 | 59.88 | 7.8776 | 28.3366 |
+| Geometry | All 400 | 300 | 8 | 31.5265 | 235 | 29.64 | 6.0751 | 33.1955 |
+| Local Car1 evidence | 10 gap-selected from 400 | 100 | 8 | 27.7495 | 100 | 70.06 | 9.8520 | 26.6490 |
+| Local Car1 evidence | 10 gap-selected from 400 | 200 | 4 | 31.2919 | 199 | 40.42 | 6.3096 | 31.6184 |
+| Local Car1 evidence | 10 gap-selected from 400 | 300 | 2 | 35.4918 | 283 | 15.27 | 2.1097 | 35.4288 |
+| Local Car1 evidence | All 400 | 100 | 32 | 21.7444 | 1 | 99.70 | 15.8571 | 21.5878 |
+| Local Car1 evidence | All 400 | 200 | 16 | 30.5188 | 157 | 52.99 | 7.0827 | 29.4978 |
+| Local Car1 evidence | All 400 | 300 | 8 | 34.7184 | 260 | 22.16 | 2.8831 | 34.3330 |
+| Combined evidence | 10 gap-selected from 400 | 100 | 8 | 25.2640 | 79 | 76.35 | 12.3375 | 25.5644 |
+| Combined evidence | 10 gap-selected from 400 | 200 | 4 | 30.9797 | 200 | 40.12 | 6.6218 | 31.4968 |
+| Combined evidence | 10 gap-selected from 400 | 300 | 2 | 34.4460 | 252 | 24.55 | 3.1555 | 34.0264 |
+| Combined evidence | All 400 | 100 | 32 | 21.5380 | 0 | 100.00 | 16.0635 | 21.5380 |
+| Combined evidence | All 400 | 200 | 16 | 30.9285 | 165 | 50.60 | 6.6730 | 29.8699 |
+| Combined evidence | All 400 | 300 | 8 | 33.0712 | 244 | 26.95 | 4.5303 | 33.6424 |
+
+### Interpretation
+
+Geometry with ten gap-selected cells, cost .5, is the highest-mAP selected
+point under the 300-request cap: **36.0361% / 271 requests**. Versus ALWAYS
+37.6015% / 334 it saves **63 (18.86%)** requests and loses **1.5654pp** mAP.
+Its actions are Car1+Car2 on 75 frames, Car1+Infra on 54 and both on 71;
+it never abstains on this recording. The 63 savings consist of choosing one
+partner instead of both on 63 of the 134 both-available frames.
+
+Same-total random mean is **34.8337%** at 271 queries: +1.2024pp for the
+policy. All 100 random draws are below it (range 33.9581–35.7326%). This is
+conditional randomization evidence on the same development recording, **not**
+a recording-level significance test or selection-adjusted generalization claim.
+The predeclared independent random p=.75 uses 250.65 queries for 33.9805%;
+p=.9 uses 300.48 for 36.1704%. These have different budgets.
+
+The local-evidence model was better at locating gaps in the earlier ranking
+diagnostic, but does not produce the best acquisition mAP here. Combined inputs
+do not uniformly help. At about 200 queries, Car1+Car2 (31.7884%, 200 queries)
+dominates combined/top10 (30.9797%, 200) and nearly matches the cost of local/
+top10 (31.2919%, 199). Do not present every learned point as beneficial.
+
+The geometry/top10 point improves Heavy_Vehicle AP versus ALWAYS
+(36.6050% vs 35.1632%) but reduces Vehicle (76.5693% vs 78.1855%),
+2Wheeler (24.5183% vs 29.3058%) and Pedestrian (6.4520% vs 7.7517%).
+It is a quality/cost tradeoff, not a uniform class improvement. The small
+fixed cost grid also leaves large unused budgets in some low-cap configurations.
+
+The frozen deployment packet already retains every selected configuration.
+Next validation of transfer can replay those unchanged settings on other
+recordings, with no cost/profile tuning there. The old crossing3 material has
+already been inspected and must not be called newly blind. A stronger simple
+Infra-priority control at the same 271-query cost is not part of this report;
+an advantage over that control has not been established.
