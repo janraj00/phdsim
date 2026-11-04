@@ -4,6 +4,25 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## User-requested zero-cost full diagnostic (2026-11-04)
+
+The user asked about not subtracting query costs. Read-only replay from frozen
+full spatial score checkpoints and original portable1400 outcomes, no fitting,
+detector or cost search: geometry/top10 **cost0 =33.6741% mAP /1813 queries**,
+versus ALWAYS33.7102%/2033. Saves220 (**10.82%**) at **.0361pp** observed mAP
+loss. Original predeclared cost.5 point remains32.6966%/1448 (28.78%,1.0136pp).
+This new cost0 point is **post-hoc, requested after inspecting full results**,
+not a newly validation-selected or blind test result. No saved default changed.
+
+Zero cost chooses Car2/Infra/both/none on62/747/502/89 frames; both-available
+subsets18/202/502. It still skips220 queries because the joint head predicts
+no extra benefit/harm versus a singleton, not because of a penalty. Compared
+to cost.5,365 frames add a second partner. Default-order AP24.5426% is separate.
+The tiny global average mAP gap does not establish statistical equivalence or
+uniform class performance. On200 validation frames geometry/geometry and
+local/local cost0 equal ALWAYS37.6015%/334; mixed local/geometry36.2489%/319.
+Keep200/1400 scopes separate. See [zero-cost diagnostic](URBANING_GAP_FULL.md).
+
 ## Hybrid stage validation completed — no improvement (2026-11-04)
 
 Ares **21586927** completed in50s, exit0. ZIP SHA256

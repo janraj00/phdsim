@@ -191,3 +191,35 @@ Infra-only4.5454 and ALWAYS5.4957. Do not claim uniform class/recording gains.
 No byte/latency gain, ROI transmission, causal visibility estimate or independent
 new blind-test performance follows from these results. A strong Infra-priority
 control at the same query count has not been evaluated for this new point.
+
+## User-requested zero-cost diagnostic (2026-11-04)
+
+After reviewing the full/hybrid results, the user explicitly asked about removing
+query penalties. Read-only replay of the original frozen geometry gap/benefit
+scores on the same1400 full frames, changing only cost .5 to0 (still top10/all400).
+No retraining, detector or new cost search. Reproduced old policy AP first using
+the original portable outcomes. This is a **post-hoc operating-point diagnostic**,
+not a newly validation-selected configuration or blind-test result. Preserve
+cost.5 as the original predeclared full replay point.
+
+| Policy | Global-sort mAP@.5 (%) | Queries | Savings vs ALWAYS (%) | Loss vs ALWAYS (pp) |
+|---|---:|---:|---:|---:|
+| Original geometry/top10, cost .5 | 32.6966 | 1448 | 28.78 | 1.0136 |
+| Same frozen model, cost0, post-hoc | 33.6741 | 1813 | 10.82 | .0361 |
+| ALWAYS | 33.7102 | 2033 | 0 | 0 |
+
+Zero penalty still omits220 possible queries. On the722 both-available frames,
+it chooses Car2 alone18 times, Infra alone202 and both502. Total actions across
+all1400: Car2/Infra/both/none =62/747/502/89. No-query cases still have no peer.
+It prefers a single partner when the direct joint head predicts no additional
+benefit or harm; zero penalty does not impose ALWAYS. Relative to cost.5,
+365 frames add the second partner and365 additional queries are made.
+The .0361pp global mAP gap is an observed average on these recordings, not
+statistical equivalence/noninferiority or uniform per-class performance.
+Upstream-default AP for this zero-cost diagnostic is24.5426%, kept separate.
+
+On200 development validation frames, geometry/geometry and local/local at cost0
+both equal ALWAYS exactly:37.6015%/334. The proposed local-gap/geometry-benefit
+hybrid at cost0 is36.2489%/319; reverse pairing37.3157%/327. Do not mix those
+200-frame values with full1400 numbers above. No production/default policy or
+original frozen configuration file has been changed by this diagnostic.
