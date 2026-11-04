@@ -1,8 +1,29 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-03**. This document summarizes the latest decisions in the
+Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Descriptive gap analysis completed (2026-11-04)
+
+User requested characterizing recoverable missing information and a complete
+mAP/request/savings/loss table. Full-1400 results are now consolidated, including
+an offline replay of the historical one-random-peer rule (100 seeds):
+**31.7038% mAP / 1311 requests**. Entropy subsets .5/.7 reproduces ALWAYS exactly.
+No fitting or detector inference; NumPy 1.26.4 preserves confidence-tie parity.
+
+Separate exploratory **validation-only** diagnostics on 200 crossing2 frames:
+14937 GT appearances, 8086 Car1 misses, 4283 recoverable by at least one feasible
+configuration (52.97%). 4094 misses (50.63%) fall in empty Car1-detection cells.
+Car2 recovery conditional on a miss drops from 474/743 (63.80%) within 20m of
+Car2 to 86/2489 (3.46%) beyond 80m, using cell-center distances. This is an
+unadjusted association in one already-inspected recording, not a causal result
+or runtime gap probability. Empty cells do not establish visibility/occlusion.
+On the same 134 both-available frames, Car2 recovers 477 appearances not
+recovered by Infra, and joint recovers 146 missed by both singles. Adding Car2
+to Infra also loses 235 existing matches. No corrected spatial model trained.
+See [gap diagnostics](URBANING_GAP_DIAGNOSTICS.md) for definitions, scope and
+the proposed next conditional analysis.
 
 ## Frozen regional/tree full replay completed (2026-11-03)
 
