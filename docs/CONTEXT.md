@@ -4,6 +4,32 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Full crossing3 spatial replay completed (2026-11-04)
+
+Ares **21586593** completed in8m16s, exit0. ZIP SHA256
+`82227530fb755da55bc516cc495ebeb70aaa9323a3e6adf892b13af3ee814869`,
+14,679,451 bytes. CRC/all25 member hashes/code hashes passed. All18 frozen
+policy AP results reproduced in both modes and25,200 decisions reproduced
+from spatial checkpoints. Exact-total random checked at seeds0/99. No fitting,
+new cost selection or detector; same1400 previously inspected crossing3 frames.
+
+Predeclared geometry/top10/cost.5: **32.6966% mAP /1448 queries**, ALWAYS
+**33.7102% /2033**:585 saved (**28.78%**),1.0136pp loss. Old tree32.5766%/1488:
+new point +.1200pp and40 fewer requests. Old regional32.3282%/1401 has47 fewer
+queries but lower mAP. Pure random p=.75:31.4119%/1523.43; p=.9:32.8147%/1829.68.
+New exact-total random at1448 mean31.0770% (+1.6196pp policy advantage), above
+all100 draws but not a recording-level significance test. This control samples
+uniform query events; older histogram/schedule controls have different constraints.
+
+Primary actions: Car2/Infra/both/none =71/1103/137/89. All89 no-query frames
+have no available peer; no learned abstention is shown. Of722 both-available
+frames, Car2 alone27, Infra alone558, both137. Geometry-only success does not
+establish local detection-evidence-conditioned gap recognition. Vs old tree,
+sequence mAP improves3/ties1/drops3;2Wheeler AP drops, other classes increase
+slightly or substantially; pedestrians still below Infra-only. No new blind-test,
+ROI communication, bytes/latency or uniform class improvement claim. See
+[full result table and limits](URBANING_GAP_FULL.md).
+
 ## Full crossing3 spatial replay prepared (2026-11-04)
 
 User authorized a job for the new policies on the **same 1400 crossing3 frames**

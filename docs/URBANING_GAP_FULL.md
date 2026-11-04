@@ -1,6 +1,6 @@
 # Frozen spatial policies on the same full crossing3 inventory
 
-Status: **prepared and tested, not yet submitted from this session** (2026-11-04).
+Status: **Ares job 21586593 completed and results checked** (2026-11-04).
 User authorized evaluating the new spatial policies on the same 1400 crossing3
 frames as the older regional/tree results. The seven sequences are fixed in
 `urbaning_frozen_full.SEQUENCES`, 200 frames each, five original recording groups.
@@ -112,3 +112,82 @@ and shell syntax passed. On the real portable inputs, the original three model
 hashes/all18 frozen settings loaded, and all eight older policies reproduced
 both AP modes on all1400 frames. The full raw Car1/pose caches reside on Ares;
 no new real1400 spatial policy result has been computed locally.
+
+## Completed Ares replay — job 21586593
+
+Completed in **8m16s**, Slurm exit0. Uploaded output SHA256
+`82227530fb755da55bc516cc495ebeb70aaa9323a3e6adf892b13af3ee814869`,
+14,679,451 bytes. CRC/all25 member hashes and implementation hashes passed.
+All18 new policies' AP reproduced in both ordering modes and all25,200
+decisions reproduced from frozen spatial score checkpoints. Original eight
+policies reproduced against the previous portable1400 outcomes. Exact-total
+random controls were independently checked at seeds0/99 in both AP modes.
+This sampled check does not claim all100 seeds were rerun locally.
+
+The predeclared primary transfer point (geometry/top10/cost.5) obtains
+**32.6966% mAP / 1448 requests** on these same1400 frames. ALWAYS is
+**33.7102% / 2033**: **585 requests saved (28.78%)**, **1.0136pp mAP loss**.
+Compared with the old tree32.5766%/1488, the new point has **+.1200pp** mAP
+and **40 fewer queries**. Compared with old regional32.3282%/1401 it has
++.3684pp mAP at47 more queries, not a dominance claim. Costs/weights were
+unchanged from validation. No new full-test point was selected.
+
+Pure independent random p=.75:31.4119%/1523.43; p=.9:32.8147%/1829.68.
+Exactly1448 uniform random query events: mean31.0770%, range30.7649–31.3512%
+over100 seeds. The policy is1.6196pp above that mean and above all100 draws.
+This is conditional randomization evidence, not recording-level significance.
+Historical budget/schedule-matched controls used a different constraint;
+do not compare this1.6196pp gap with those older control gaps as a model gain.
+
+### All frozen configurations and historical policies
+
+All entries below use the same global-sort four-class BEV mAP@.5 on1400 frames.
+Validation-cap suffixes are annotations, not imposed crossing3 query budgets.
+
+| Policy | mAP (%) | Queries | Savings vs ALWAYS (%) | mAP loss vs ALWAYS (pp) |
+|---|---:|---:|---:|---:|
+| ego | 23.9064 | 0 | 100.00 | 9.8038 |
+| vehicle_peer | 27.3463 | 766 | 62.32 | 6.3638 |
+| infrastructure | 31.7422 | 1267 | 37.68 | 1.9680 |
+| all | 33.7102 | 2033 | 0.00 | 0.0000 |
+| gain_ego | 33.1274 | 1838 | 9.59 | 0.5828 |
+| gain_geometry | 32.2393 | 1533 | 24.59 | 1.4709 |
+| regional | 32.3282 | 1401 | 31.09 | 1.3819 |
+| tree | 32.5766 | 1488 | 26.81 | 1.1335 |
+| spatial_geometry_gap_top10_valcap0.5 | 27.9744 | 540 | 73.44 | 5.7358 |
+| spatial_geometry_gap_top10_valcap1 | 32.2199 | 1306 | 35.76 | 1.4902 |
+| spatial_geometry_gap_top10_valcap1.5 | 32.6966 | 1448 | 28.78 | 1.0136 |
+| spatial_geometry_all_cells_valcap0.5 | 23.9064 | 0 | 100.00 | 9.8038 |
+| spatial_geometry_all_cells_valcap1 | 30.5105 | 1183 | 41.81 | 3.1997 |
+| spatial_geometry_all_cells_valcap1.5 | 32.3200 | 1402 | 31.04 | 1.3901 |
+| spatial_local_gap_top10_valcap0.5 | 26.7019 | 517 | 74.57 | 7.0083 |
+| spatial_local_gap_top10_valcap1 | 31.9069 | 1309 | 35.61 | 1.8033 |
+| spatial_local_gap_top10_valcap1.5 | 32.5476 | 1515 | 25.48 | 1.1625 |
+| spatial_local_all_cells_valcap0.5 | 23.9530 | 2 | 99.90 | 9.7571 |
+| spatial_local_all_cells_valcap1 | 28.4728 | 668 | 67.14 | 5.2373 |
+| spatial_local_all_cells_valcap1.5 | 31.8518 | 1301 | 36.01 | 1.8584 |
+| spatial_combined_gap_top10_valcap0.5 | 28.6614 | 649 | 68.08 | 5.0487 |
+| spatial_combined_gap_top10_valcap1 | 32.0733 | 1305 | 35.81 | 1.6369 |
+| spatial_combined_gap_top10_valcap1.5 | 32.3681 | 1506 | 25.92 | 1.3420 |
+| spatial_combined_all_cells_valcap0.5 | 24.1321 | 20 | 99.02 | 9.5780 |
+| spatial_combined_all_cells_valcap1 | 31.3527 | 1179 | 42.01 | 2.3575 |
+| spatial_combined_all_cells_valcap1.5 | 32.0883 | 1417 | 30.30 | 1.6218 |
+
+### Action audit and limitations
+
+Primary point: Car1+Car2 on71 frames, Car1+Infra on1103, both on137,
+Car1 alone on89. All89 have no available partner. On the722 both-available
+frames it chooses Car2 alone27 times, Infra alone558 and both137. Therefore
+the585 savings consist of558 skipped Car2 queries and27 skipped Infra queries.
+No learned abstention when a peer exists is demonstrated by this point.
+The best transfer point uses geometry/availability, not Car1 detection scores;
+its success is not evidence of local evidence-conditioned gap recognition.
+
+Against the old tree, per-sequence mAP improves in3, ties in1 and drops in3
+of7 sequences. These seven clips are only five original recording groups.
+Class AP versus tree: Vehicle62.1375 vs62.0076; Heavy_Vehicle34.5598 vs33.6025;
+2Wheeler29.6679 vs30.3409; Pedestrian4.4212 vs4.3556. Pedestrian remains below
+Infra-only4.5454 and ALWAYS5.4957. Do not claim uniform class/recording gains.
+No byte/latency gain, ROI transmission, causal visibility estimate or independent
+new blind-test performance follows from these results. A strong Infra-priority
+control at the same query count has not been evaluated for this new point.
