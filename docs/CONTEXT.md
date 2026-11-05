@@ -4,6 +4,38 @@ Updated: **2026-11-05**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## CPU standalone BEV triplet prepared (2026-11-05)
+
+User wants to continue CPU work while a GPU grant would take time. Updated
+hpc-grants: CPU25000h granted/406.21h consumed; storage500GB; **no GPU allocation**.
+Visible GPU partitions are not authorization to run them. Full BEVFusion remains
+separate GPU/adaptation work; current choice is a small CPU prototype that creates
+new box centers/sizes/orientations, not another proposal scorer or2D metric switch.
+
+Prepared `urbaning_bev_cpu.sbatch`:8CPU/24GiB/6h upper limit, same400 train/200
+validation. Three independently trained, identical small heads with strict input
+masks:RGB-only, Car1 point-grid LiDAR-only, RGB+LiDAR. Old pretrained CoBEVT is
+only an external reference (different training, possibly saw development clips).
+Frozen ImageNet MobileNet spatial maps,16-channel fixed compression, calibrated
+voxel pull at4 heights,200x200 grid/1.1m cells; train-only ground/box priors.
+No reproduction of Simple-BEV/BEVFusion or universal modality claim. Coarse
+representation/depth ambiguity/frozen encoder limit expected accuracy.
+
+Important correction: **26 was correct LiDAR two-wheeler proposals**, not all
+train annotations. Full train GT is Vehicle18196,Heavy1258,2Wheeler389,Ped2920
+frame instances. New heads train on all GT, including LiDAR misses. Same primary
+four-class BEV mAP@.5, global sort, original0–100m radius filter; fresh matching,
+class AP and raw predictions/GT exported. No GT removed for target-cell collisions.
+Fixed8 epochs, final epoch only, same initialization/order/optimizer; no validation
+search, no crossing3. Native associations remain offline. Runtime RGB-only input
+never receives LiDAR values/proposals/scores and vice versa.
+
+Feature/model checkpoint resume, isolated old CPU runtime, no source rewriting.
+Eleven focused tests and actual full-size synthetic RGB/CPU training smoke passed;
+local rates~.49s for6-view encode/lift and~.067s per head update on4 threads,
+not an Ares estimate. **No native Ares run, job ID or AP result yet.** See
+[CPU standalone BEV protocol](URBANING_BEV_CPU.md).
+
 ## Car1 RGB full400/200 completed and checked (2026-11-05)
 
 Ares21594528 completed13m41s, exit0. ZIP SHA256
