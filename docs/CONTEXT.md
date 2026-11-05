@@ -4,6 +4,36 @@ Updated: **2026-11-05**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Car1 RGB full400/200 completed and checked (2026-11-05)
+
+Ares21594528 completed13m41s, exit0. ZIP SHA256
+`886a4fe190a8fd065bb5fcfee7e3ae90b171d9354dc9bf38fdcc2fe09e34efd6`,
+134,604bytes. Uploaded archive hash/CRC, all macro arithmetic,400/200 unique
+native keys, unchanged extractor and source/model identities checked. Original
+Car1 AP/GT support matches separate historical AP-export validation ego exactly.
+No detector inference, no crossing3; these are still the same3 development
+recordings, not the whole dataset or new independent validation.
+
+Primary BEV mAP@.5 global: raw21.5380%, learned LiDAR22.9784%, RGB22.6447%,
+shuffle20.2564%. **RGB adds-.3337pp versus learned LiDAR**, so pilot+.2147pp
+increment did not persist. Total+1.1067pp over raw is not solely RGB benefit.
+Class RGB-minus-learned changes:Vehicle+.8764pp,Heavy-.1515,2Wheeler-2.4627,
+Pedestrian+.4031. The two-wheeler fall contributes-.6157pp to macro; others
+jointly offset+.2820pp. Full train target positives/negatives:Vehicle10424/5769,
+Heavy566/777,2Wheeler**26/332**,Pedestrian812/2677. These are frame-proposal
+instances, not unique objects. Sparse positives motivate an overfitting/crop
+coverage diagnostic; cause is not established. Secondary RGB deltas@.3+1.0497pp,
+@.7-.8006pp; keep primary@.5.
+
+The smaller full ZIP has no QA JPGs: first train/validation frames reused pilot
+features, and cached return skips QA export. Only earlier pilot two-frame visual
+inspection exists; no full-run alignment proof. This is an export limitation,
+not evidence RGB features were absent. Prior pilot images remain preserved.
+Next useful work is class-specific train/validation score diagnostics and
+inspection of scarce correct two-wheeler crops using existing caches before
+new training. **No further job prepared/submitted.** See
+[RGB results](URBANING_RGB_PILOT.md).
+
 ## Car1 RGB CPU pilot completed; full cached development run prepared (2026-11-05)
 
 Ares21593944 completed6m01s, exit0. Uploaded ZIP SHA256

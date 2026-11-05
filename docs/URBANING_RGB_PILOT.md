@@ -7,6 +7,64 @@ The user explicitly selected the fast CPU pilot: learn a scorer of existing
 LiDAR proposals using RGB crops. This is stage B of the agreed roadmap, before
 trainable multimodal BEV fusion and later multi-agent multimodal acquisition.
 
+## Full existing400/200 development run completed (2026-11-05)
+
+Ares **21594528** completed13m41s, exit0 (worker step13m17s). Result ZIP
+SHA256 `886a4fe190a8fd065bb5fcfee7e3ae90b171d9354dc9bf38fdcc2fe09e34efd6`,
+134,604bytes. Uploaded archive hash/CRC, all class-to-macro arithmetic,400/200
+unique disjoint native keys, exact extractor-code identity and encoder weight
+hash checked. Original Car1 class AP, GT counts and macro AP match the separate
+historical AP-export validation ego baseline exactly. No detector inference.
+
+| Variant | BEV mAP@0.5 (%) | Change vs original (pp) |
+|---|---:|---:|
+| Original LiDAR |21.5380|0|
+| Learned LiDAR scoring |22.9784|+1.4404|
+| Learned LiDAR+RGB scoring |22.6447|+1.1067|
+| RGB-shuffle diagnostic |20.2564|-1.2816|
+
+**RGB minus learned LiDAR = -.3337pp**, so the small pilot's+.2147pp incremental
+RGB gain did not persist on this larger development measurement. The1.1067pp
+increase versus raw scores must not be attributed entirely to RGB.
+
+| Class | Original AP@.5 (%) | Learned LiDAR | LiDAR+RGB | RGB minus learned LiDAR (pp) | Validation GT instances |
+|---|---:|---:|---:|---:|---:|
+| Vehicle |48.3758|48.3750|49.2513|+.8764|12241|
+| Heavy_Vehicle |20.0164|26.9184|26.7670|-.1515|249|
+| 2Wheeler |14.8483|14.1490|11.6862|-2.4627|289|
+| Pedestrian |2.9116|2.4712|2.8744|+.4031|2158|
+
+The two-wheeler decrease contributes-.6157pp to the four-class macro average;
+the other classes together offset+.2820pp. This diagnoses where the aggregate
+loss occurs, not why. The full train target support is Vehicle10424/5769,
+Heavy566/777,2Wheeler**26/332**,Pedestrian812/2677 correct/incorrect proposals
+within the evaluation radius. These are frame-proposal examples, not unique
+objects; repetition across adjacent frames further limits independent support.
+The26 positives motivate an overfitting/data-coverage diagnostic, but do not
+establish the cause of degradation.
+
+RGB's incremental mAP is+1.0497pp atIoU.3 and-.8006pp atIoU.7; primary remains
+IoU.5. Shuffle gives20.2564%,2.3884pp below actual RGB, but is only one fixed
+perturbation and does not establish superiority over the learned LiDAR control.
+Projected crops exist for21100/21395 train and13739/13880 validation proposals.
+This does not measure occlusion or semantic visibility. Native offsets remain
+-1..+45ms, offline associations.
+
+The full ZIP contains only reports/model/provenance, **no QA images**. Both
+first frames came from the pilot feature seed; the unchanged extractor returns
+verified cached features before its QA-export branch. This explains the smaller
+archive. Prior limited visual QA belongs to the pilot's two frames; there has
+been no new full-run visual inspection. Cached features were used in the full
+measurement, not omitted from inference.
+
+This remains the same3 development recordings, fixed LiDAR proposals and frozen
+RGB encoder, with training-only PCA/head refits. It neither validates all RGB
+fusion designs nor supplies new boxes/recall. Useful next diagnostic: inspect
+class-specific train versus validation scoring and the scarce correct two-
+wheeler proposals/crops using existing Ares features, before changing the
+model. Any choice based on this inspected validation remains development,
+not a new blind result. No further job is prepared/submitted here.
+
 ## Observed pilot result and next measurement
 
 120 train /60 validation frames, same predeclared protocol and zero peers:
@@ -54,7 +112,8 @@ new independent recordings. Freeze the same encoder/PCA16/head settings,
 matching and metric. Refit PCA/heads on400 train only; no validation parameter
 search or post-hoc per-class bypass. Reuse120+60 existing feature cache entries
 with exact per-frame source/encoder/code/hash validation. No detector inference.
-No full400/200 result or Ares submission is claimed yet.
+This described the preparation state; the completed full400/200 measurement
+is now recorded above.
 
 ```bash
 sbatch -A plgkgacq-cpu scripts/slurm/urbaning_rgb_pilot.sbatch \
@@ -188,7 +247,7 @@ ImageNet weights once and check full SHA256
 Source: [torchvision0.21 weight definition](https://github.com/pytorch/vision/blob/v0.21.0/torchvision/models/mobilenetv3.py).
 
 Target: a short CPU pilot rather than hours of detector inference. Actual Ares
-pilot wall time was6m01s including setup; full400/200 wall time is not measured. A local compatibility check with the exact CPU
+pilot wall time was6m01s including setup; full400/200 subsequently completed in13m41s. A local compatibility check with the exact CPU
 packages and official weights extracted a64-crop224 batch in about1.6s on4
 threads; this excludes Ares queue, GPFS I/O and evaluation and is not an Ares
 runtime estimate. The job prints measured extraction rate and remaining-time
