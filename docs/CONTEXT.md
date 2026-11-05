@@ -1,8 +1,96 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-04**. This document summarizes the latest decisions in the
+Updated: **2026-11-05**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Car1 RGB full400/200 completed and checked (2026-11-05)
+
+Ares21594528 completed13m41s, exit0. ZIP SHA256
+`886a4fe190a8fd065bb5fcfee7e3ae90b171d9354dc9bf38fdcc2fe09e34efd6`,
+134,604bytes. Uploaded archive hash/CRC, all macro arithmetic,400/200 unique
+native keys, unchanged extractor and source/model identities checked. Original
+Car1 AP/GT support matches separate historical AP-export validation ego exactly.
+No detector inference, no crossing3; these are still the same3 development
+recordings, not the whole dataset or new independent validation.
+
+Primary BEV mAP@.5 global: raw21.5380%, learned LiDAR22.9784%, RGB22.6447%,
+shuffle20.2564%. **RGB adds-.3337pp versus learned LiDAR**, so pilot+.2147pp
+increment did not persist. Total+1.1067pp over raw is not solely RGB benefit.
+Class RGB-minus-learned changes:Vehicle+.8764pp,Heavy-.1515,2Wheeler-2.4627,
+Pedestrian+.4031. The two-wheeler fall contributes-.6157pp to macro; others
+jointly offset+.2820pp. Full train target positives/negatives:Vehicle10424/5769,
+Heavy566/777,2Wheeler**26/332**,Pedestrian812/2677. These are frame-proposal
+instances, not unique objects. Sparse positives motivate an overfitting/crop
+coverage diagnostic; cause is not established. Secondary RGB deltas@.3+1.0497pp,
+@.7-.8006pp; keep primary@.5.
+
+The smaller full ZIP has no QA JPGs: first train/validation frames reused pilot
+features, and cached return skips QA export. Only earlier pilot two-frame visual
+inspection exists; no full-run alignment proof. This is an export limitation,
+not evidence RGB features were absent. Prior pilot images remain preserved.
+Next useful work is class-specific train/validation score diagnostics and
+inspection of scarce correct two-wheeler crops using existing caches before
+new training. **No further job prepared/submitted.** See
+[RGB results](URBANING_RGB_PILOT.md).
+
+## Car1 RGB CPU pilot completed; full cached development run prepared (2026-11-05)
+
+Ares21593944 completed6m01s, exit0. Uploaded ZIP SHA256
+`01a846a25d7a760505423a5fd6163a9d07fd4a6bab70c48ff0f644fe2a244455`,
+6,974,819bytes; hash/CRC/report counts/arithmetic checked.120 train/60 validation.
+Primary global BEV mAP@.5: original22.3192%; learned LiDAR23.2347%;
+LiDAR+RGB23.4494%; fixed shuffle21.3288%. RGB adds **.2147pp over learned
+LiDAR**, not the entire1.1302pp versus original. Versus learned LiDAR, class
+changes:Vehicle+.8943pp,Heavy+1.4289,2Wheeler-1.8762,Pedestrian+.4119.
+2Wheeler train head has only7 positive/101 negative proposals, not unique
+objects. RGB geometric crop availability is98.62% train/99.11% validation;
+this is not visibility or alignment proof. Offsets-1..+45ms remain offline.
+
+Inspected selected first-train/validation overlays/crop: plausible projections
+onto cars/pedestrian, plus background/occluded predictions; no obvious gross
+axis issue in those views. Only2 native frames have exported QA; not exhaustive.
+RGB@.3 improves but@.7 falls versus learned LiDAR; keep primary@.5 and class
+tradeoffs explicit. No blind/generalization/full-BEV claim.
+
+Prepared same-settings run on all existing400 train/200 validation frames in
+these same3 development recordings, no crossing3 or detector. Script now accepts
+positive frame caps and optional completed feature-cache seed. Keep extractor
+code unchanged for verified180-frame reuse; refit PCA/heads on train400 only.
+No class bypass or hyperparameter selection from inspected validation. New
+output `runs/urbaning-rgb-full-001`; existing pilot is preserved. **Not submitted
+from this session and no full400/200 result yet.** Details in
+[RGB pilot protocol/results](URBANING_RGB_PILOT.md).
+
+## Car1 RGB late-fusion CPU pilot prepared (2026-11-05)
+
+Agreed roadmap: A=Car1 LiDAR, C=multi-agent LiDAR (authors plus our acquisition);
+now B=Car1 LiDAR+RGB, later D=multimodal multi-agent, then source/modality selection.
+User explicitly chose the quick CPU late-fusion pilot: fixed existing LiDAR
+proposals, frozen RGB features and a learned scorer, no new3D boxes.
+
+Prepared `scripts/slurm/urbaning_rgb_pilot.sbatch`:8CPU/24GiB/3h upper bound,
+reuse existing converted RGB/YAML/predictions and input packet in place; no new
+upload or detector. Predeclared uniform sampling:120 train (60 per original
+recording),60 validation from crossing2; no crossing3. Compare original LiDAR,
+learned LiDAR-only control with the same projection metadata, learned LiDAR+RGB,
+and fixed seed0 RGB shuffle diagnostic. Primary BEV mAP@0.5, global sort,
+per-class AP and secondary frame-order AP. Always re-match after score changes;
+pairwise IoU reused for speed. Never compare sampled AP to historical1400 AP.
+
+Frozen ImageNet MobileNetV3-small576 features; train-only PCA16 and two fixed
+ridge0.1 residual logistic heads. No validation parameter search; GT only
+offline supervision/evaluation. Use pinned converted camera axes and preserve
+native associations/timing offsets. Save projection overlays/crops, feature
+checkpoints, model and compact result ZIP. Isolated torchvision0.21.0+cpu;
+no shared venv edits. Existing torch2.6+cpu / NumPy1.26.4 required.
+
+Seven focused tests passed, including synthetic end-to-end source bindings,
+export and resume. Raw/reversed matching parity passed on5 real cached frames.
+Actual pinned CPU MobileNet weights/import/batch feature extraction checked.
+**No Ares job or real RGB result yet; native alignment still needs the exported
+visual QA.** This is proposal reranking, not full trainable BEV fusion. Details:
+[RGB pilot](URBANING_RGB_PILOT.md).
 
 ## Zero-cost controls/classes/recordings completed (2026-11-04)
 
