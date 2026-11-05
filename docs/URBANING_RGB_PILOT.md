@@ -1,9 +1,73 @@
 # Car1 LiDAR + RGB: CPU late-fusion pilot
 
-Status: prepared and locally checked on 2026-11-05; **not run on Ares yet**.
+Status: pilot completed on Ares **21593944**, 2026-11-05, **6m01s**, exit0.
+Result ZIP SHA256 `01a846a25d7a760505423a5fd6163a9d07fd4a6bab70c48ff0f644fe2a244455`,
+6,974,819bytes; hash, ZIP CRC, counts and report arithmetic checked.
 The user explicitly selected the fast CPU pilot: learn a scorer of existing
 LiDAR proposals using RGB crops. This is stage B of the agreed roadmap, before
 trainable multimodal BEV fusion and later multi-agent multimodal acquisition.
+
+## Observed pilot result and next measurement
+
+120 train /60 validation frames, same predeclared protocol and zero peers:
+
+| Variant | BEV mAP@0.5 (%) | Change vs original (pp) |
+|---|---:|---:|
+| Original LiDAR |22.3192|0|
+| Learned LiDAR scoring |23.2347|+.9155|
+| Learned LiDAR+RGB scoring |23.4494|+1.1302|
+| RGB-shuffle diagnostic |21.3288|-.9904|
+
+RGB's incremental difference versus the learned LiDAR control is **+.2147pp**,
+not the entire1.1302pp. Per-class AP@.5, global confidence sort:
+
+| Class | Original | Learned LiDAR | LiDAR+RGB | RGB minus learned LiDAR (pp) |
+|---|---:|---:|---:|---:|
+| Vehicle |48.4893|48.4475|49.3418|+.8943|
+| Heavy_Vehicle |22.5253|28.1704|29.5993|+1.4289|
+| 2Wheeler |14.8789|13.6868|11.8107|-1.8762|
+| Pedestrian |3.3832|2.6340|3.0459|+.4119|
+
+Train binary target support (correct/incorrect proposals, not unique objects):
+Vehicle3123/1772; Heavy176/240; 2Wheeler**7/101**; Pedestrian241/804.
+This sparse positive supervision is a concrete concern for the two-wheeler head;
+it is not established as the sole cause of degradation. RGB has usable projected
+crops for6376/6465 train proposals and4110/4147 validation proposals; geometric
+coverage is not proof of visible/unoccluded content. Source offsets range-1 to+45ms.
+
+Visual QA sampled the first train and validation frame: inspected overlays show
+plausible projections onto cars and a pedestrian, alongside background/occluded
+proposals. This does not establish correctness over all frames or prove that
+all background crops are detector errors rather than projection issues. Only
+two native frames have exported overlays. No systematic gross axis error was
+apparent in the inspected views.
+
+The smaller mAP increase is not uniform: relative to learned LiDAR scoring,
+RGB also changes mAP@.3 by+1.6296pp but mAP@.7 by-.4550pp. The primary remains
+mAP@.5. The shuffled diagnostic is one perturbation, not causal or significance
+evidence; no model-selection claim. Previous full1400 policy AP is a different
+scope and not a paired baseline here.
+
+Next prepared measurement: **all existing400 train /200 validation frames**
+from these same3 development recordings, not the complete UrbanIng dataset or
+new independent recordings. Freeze the same encoder/PCA16/head settings,
+matching and metric. Refit PCA/heads on400 train only; no validation parameter
+search or post-hoc per-class bypass. Reuse120+60 existing feature cache entries
+with exact per-frame source/encoder/code/hash validation. No detector inference.
+No full400/200 result or Ares submission is claimed yet.
+
+```bash
+sbatch -A plgkgacq-cpu scripts/slurm/urbaning_rgb_pilot.sbatch \
+  "$WORK/phdsim/runs/urbaning-rgb-full-001" 200 200 \
+  "$WORK/phdsim/runs/urbaning-rgb-pilot-001"
+```
+
+Script arguments: output directory, train frame cap per original recording,
+validation frame cap per original recording, optional completed feature-cache
+seed. Defaults remain the original60/60 pilot. Partial resumes keep matching
+configuration; copied feature bytes and metadata are reverified by the unchanged
+extractor. Source caches/models/reports remain untouched. The repeated development
+validation is exploratory, not a blind generalization test.
 
 ## Question and fixed protocol
 
@@ -91,7 +155,8 @@ test checks this identity and image projection/near-plane handling.
 Only numeric camera fields are parsed with YAML composition; object/label tags
 are never constructed. Yellow projection overlays and a few actual crops from
 the first train/validation frames are exported for human alignment inspection.
-Real RGB/box alignment has not been visually checked before the Ares run.
+The initial run was prepared before real RGB QA; the completed pilot now has
+the limited two-frame visual inspection described above.
 
 Run/trace/prediction/GT/YAML hashes and converter commit/native frame association
 are verified before extraction. The original portable AP archive is verified
@@ -123,7 +188,7 @@ ImageNet weights once and check full SHA256
 Source: [torchvision0.21 weight definition](https://github.com/pytorch/vision/blob/v0.21.0/torchvision/models/mobilenetv3.py).
 
 Target: a short CPU pilot rather than hours of detector inference. Actual Ares
-wall time is not measured. A local compatibility check with the exact CPU
+pilot wall time was6m01s including setup; full400/200 wall time is not measured. A local compatibility check with the exact CPU
 packages and official weights extracted a64-crop224 batch in about1.6s on4
 threads; this excludes Ares queue, GPFS I/O and evaluation and is not an Ares
 runtime estimate. The job prints measured extraction rate and remaining-time
@@ -148,8 +213,8 @@ Outputs:
 - `urbaning-rgb-pilot.zip`: compact downloadable reports/model/QA;
 - `features/`, `weights/`, `dependencies/`: reusable local runtime caches.
 
-Local checks:7 focused tests including synthetic manifest-loader/end-to-end
-export/resume; raw/reversed matching parity on5 real NPZ caches; actual frozen
+Local checks:8 focused tests including synthetic manifest-loader/end-to-end
+export/resume and shell frame-cap/cache-seeding checks; raw/reversed matching parity on5 real NPZ caches; actual frozen
 MobileNet weight download, CPU import and64-crop feature extraction; shell syntax
-and Python compilation. These do **not** constitute an Ares RGB experiment or
-proof of improvement. The first actual result is still pending.
+and Python compilation. The actual Ares pilot result and its limited visual inspection are recorded
+above; none of these checks proves generalization or full BEV fusion benefit.

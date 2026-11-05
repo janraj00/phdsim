@@ -4,6 +4,34 @@ Updated: **2026-11-05**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Car1 RGB CPU pilot completed; full cached development run prepared (2026-11-05)
+
+Ares21593944 completed6m01s, exit0. Uploaded ZIP SHA256
+`01a846a25d7a760505423a5fd6163a9d07fd4a6bab70c48ff0f644fe2a244455`,
+6,974,819bytes; hash/CRC/report counts/arithmetic checked.120 train/60 validation.
+Primary global BEV mAP@.5: original22.3192%; learned LiDAR23.2347%;
+LiDAR+RGB23.4494%; fixed shuffle21.3288%. RGB adds **.2147pp over learned
+LiDAR**, not the entire1.1302pp versus original. Versus learned LiDAR, class
+changes:Vehicle+.8943pp,Heavy+1.4289,2Wheeler-1.8762,Pedestrian+.4119.
+2Wheeler train head has only7 positive/101 negative proposals, not unique
+objects. RGB geometric crop availability is98.62% train/99.11% validation;
+this is not visibility or alignment proof. Offsets-1..+45ms remain offline.
+
+Inspected selected first-train/validation overlays/crop: plausible projections
+onto cars/pedestrian, plus background/occluded predictions; no obvious gross
+axis issue in those views. Only2 native frames have exported QA; not exhaustive.
+RGB@.3 improves but@.7 falls versus learned LiDAR; keep primary@.5 and class
+tradeoffs explicit. No blind/generalization/full-BEV claim.
+
+Prepared same-settings run on all existing400 train/200 validation frames in
+these same3 development recordings, no crossing3 or detector. Script now accepts
+positive frame caps and optional completed feature-cache seed. Keep extractor
+code unchanged for verified180-frame reuse; refit PCA/heads on train400 only.
+No class bypass or hyperparameter selection from inspected validation. New
+output `runs/urbaning-rgb-full-001`; existing pilot is preserved. **Not submitted
+from this session and no full400/200 result yet.** Details in
+[RGB pilot protocol/results](URBANING_RGB_PILOT.md).
+
 ## Car1 RGB late-fusion CPU pilot prepared (2026-11-05)
 
 Agreed roadmap: A=Car1 LiDAR, C=multi-agent LiDAR (authors plus our acquisition);

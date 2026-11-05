@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import zipfile
+import os
+import subprocess
 
 import numpy as np
 
@@ -19,6 +21,41 @@ def box(x=0., y=0., z=10.):
 
 
 class RGBPilotTests(unittest.TestCase):
+    def test_slurm_frame_caps_and_non_destructive_cache_seed(self):
+        """Run the shell adapter with a fake srun; never contact Slurm/Ares."""
+        repo = Path(__file__).resolve().parents[1]
+        original = (repo/'scripts/slurm/urbaning_rgb_pilot.sbatch').read_text()
+        with tempfile.TemporaryDirectory() as t:
+            root = Path(t); work = root/'work'
+            (work/'bin').mkdir(parents=True); (work/'inputs').mkdir()
+            (work/'phdsim/runs').mkdir(parents=True)
+            wrapper = work/'bin/urbaning-python.sh'; wrapper.write_text('#!/bin/bash\nexit 0\n'); wrapper.chmod(0o755)
+            (work/'inputs/urbaning-gap-acquisition-inputs-001.zip').write_bytes(b'fixture')
+            fakebin = root/'fakebin'; fakebin.mkdir()
+            fake = fakebin/'srun'; fake.write_text('#!/bin/bash\nprintf "%s\\n" "$@" > "$CAPTURE"\n'); fake.chmod(0o755)
+            script = root/'job.sh'
+            script.write_text(original.replace('WORK=/net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work',
+                                               'WORK="'+str(work)+'"'))
+            env = {**os.environ, 'SLURM_SUBMIT_DIR':str(repo), 'PATH':str(fakebin)+':'+os.environ['PATH'],
+                   'CAPTURE':str(root/'capture')}
+            def invoke(*args):
+                return subprocess.run(['bash',str(script),*map(str,args)],env=env,capture_output=True,text=True)
+            a = invoke(work/'phdsim/runs/pilot')
+            self.assertEqual(a.returncode,0,a.stderr)
+            self.assertIn('--train-per-recording\n60\n--validation-per-recording\n60', (root/'capture').read_text())
+            seed = root/'seed'; (seed/'features').mkdir(parents=True)
+            (seed/'completed.json').write_text('{}')
+            (seed/'features/frame.npz').write_bytes(b'preserve source')
+            (seed/'features/frame.json').write_text('{}')
+            out = work/'phdsim/runs/full'
+            a = invoke(out,200,200,seed)
+            self.assertEqual(a.returncode,0,a.stderr)
+            self.assertIn('--train-per-recording\n200\n--validation-per-recording\n200', (root/'capture').read_text())
+            self.assertEqual((out/'features/frame.npz').read_bytes(),b'preserve source')
+            self.assertEqual((seed/'features/frame.npz').read_bytes(),b'preserve source')
+            self.assertEqual(invoke(out,200,200,seed).returncode,0)
+            self.assertNotEqual(invoke(out,0,200).returncode,0)
+
     def test_converter_optical_axes_and_projection(self):
         r1 = np.diag([1.,-1,1,1])
         r2 = np.array([[0,-1,0,0],[0,0,-1,0],[1,0,0,0],[0,0,0,1.]])
