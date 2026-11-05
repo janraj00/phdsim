@@ -4,6 +4,73 @@ Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## User-requested zero-cost full diagnostic (2026-11-04)
+
+The user asked about not subtracting query costs. Read-only replay from frozen
+full spatial score checkpoints and original portable1400 outcomes, no fitting,
+detector or cost search: geometry/top10 **cost0 =33.6741% mAP /1813 queries**,
+versus ALWAYS33.7102%/2033. Saves220 (**10.82%**) at **.0361pp** observed mAP
+loss. Original predeclared cost.5 point remains32.6966%/1448 (28.78%,1.0136pp).
+This new cost0 point is **post-hoc, requested after inspecting full results**,
+not a newly validation-selected or blind test result. No saved default changed.
+
+Zero cost chooses Car2/Infra/both/none on62/747/502/89 frames; both-available
+subsets18/202/502. It still skips220 queries because the joint head predicts
+no extra benefit/harm versus a singleton, not because of a penalty. Compared
+to cost.5,365 frames add a second partner. Default-order AP24.5426% is separate.
+The tiny global average mAP gap does not establish statistical equivalence or
+uniform class performance. On200 validation frames geometry/geometry and
+local/local cost0 equal ALWAYS37.6015%/334; mixed local/geometry36.2489%/319.
+Keep200/1400 scopes separate. See [zero-cost diagnostic](URBANING_GAP_FULL.md).
+
+## Hybrid stage validation completed — no improvement (2026-11-04)
+
+Ares **21586927** completed in50s, exit0. ZIP SHA256
+`f7ea1bdce81ac9a98df07367c2b60fb3e107b171e693be5daaa667461b4a7677`,
+2,426,684 bytes. CRC/member/model/deployment/code hashes passed. All40 candidate
+AP results and8000 decisions reproduced; all12 selections match the declared
+validation rule. Random controls independently checked at seeds0/99. Scope:
+**same200 crossing2 development frames**, not1400 crossing3, no refitting.
+
+Proposed local-gap/geometry-benefit composition did not help. At fixed cost.5:
+**32.1397%/242** versus geometry/geometry **36.0361%/271**; different counts.
+Under original cap300, selecting original cost-grid points yields local/geometry
+**34.1327%/288**, dominated by geometry/geometry **36.0361%/271** (1.9035pp lower
+mAP,17 more queries). Reverse geometry/local **34.7960%/277** also dominated.
+These two mixed points are below exact-total random means35.6541%/35.1287%.
+Local/local at cost.5 **37.6039%/333** is practically ALWAYS37.6015%/334;
+.0024pp at one saved query is not a substantial acquisition gain. Under cap300
+local/local remains35.4918%/283. No hybrid1400 evaluation has been performed.
+
+Gap localization and partner-recoverable utility are different targets. Their
+mismatch is a hypothesis to investigate, not a proven causal explanation or
+proof current Car1 evidence cannot help. No further target/model training has
+been performed. Preserve the existing full geometry32.6966%/1448 result; do not
+mix datasets or claim this pilot improved it. See [hybrid results](URBANING_GAP_HYBRID.md).
+
+## Hybrid gap/partner-stage validation prepared (2026-11-04)
+
+User asked to incorporate current Car1 evidence into the geometry-only selection.
+Prepared `urbaning_gap_hybrid.sbatch` for200 crossing2 development-validation
+frames: frozen local gap head selects10/all400 fields, frozen geometric subset
+benefit heads score them, one whole-frame action after cost. Fixed2x2 comparison
+also includes geometry/geometry, local/local and reverse geometry/local. No new
+training, detector, installs, crossing3 access or file upload. Existing Ares input
+packet and validation21586379 result provide all verified sources.
+
+Primary comparison uses common cost.5; actual query counts can differ. Secondary
+same old cost-grid/caps select12 configurations on development mAP, then freeze
+all settings and original weights before random controls. Pure independent random
+is reused; exact-total controls stay secondary. Both homogeneous pairs must
+reproduce old choices/AP at every cost. Report global-sort mAP@.5/requests/savings/
+loss, both AP modes and class AP; never use F1 as primary. No new blind-test claim
+for previously inspected development or crossing3 data.
+
+All16 gap-related tests and shell syntax passed; real-input reduced-grid/two-seed
+smoke covers four pairings, old-control parity, report/deployment ZIP integrity
+and identical resume. **Full hybrid experiment not yet run/submitted from this
+session**. No improvement claimed. See [hybrid protocol](URBANING_GAP_HYBRID.md).
+
 ## Full crossing3 spatial replay completed (2026-11-04)
 
 Ares **21586593** completed in8m16s, exit0. ZIP SHA256
