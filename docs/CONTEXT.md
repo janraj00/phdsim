@@ -1,8 +1,38 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-04**. This document summarizes the latest decisions in the
+Updated: **2026-11-05**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Car1 RGB late-fusion CPU pilot prepared (2026-11-05)
+
+Agreed roadmap: A=Car1 LiDAR, C=multi-agent LiDAR (authors plus our acquisition);
+now B=Car1 LiDAR+RGB, later D=multimodal multi-agent, then source/modality selection.
+User explicitly chose the quick CPU late-fusion pilot: fixed existing LiDAR
+proposals, frozen RGB features and a learned scorer, no new3D boxes.
+
+Prepared `scripts/slurm/urbaning_rgb_pilot.sbatch`:8CPU/24GiB/3h upper bound,
+reuse existing converted RGB/YAML/predictions and input packet in place; no new
+upload or detector. Predeclared uniform sampling:120 train (60 per original
+recording),60 validation from crossing2; no crossing3. Compare original LiDAR,
+learned LiDAR-only control with the same projection metadata, learned LiDAR+RGB,
+and fixed seed0 RGB shuffle diagnostic. Primary BEV mAP@0.5, global sort,
+per-class AP and secondary frame-order AP. Always re-match after score changes;
+pairwise IoU reused for speed. Never compare sampled AP to historical1400 AP.
+
+Frozen ImageNet MobileNetV3-small576 features; train-only PCA16 and two fixed
+ridge0.1 residual logistic heads. No validation parameter search; GT only
+offline supervision/evaluation. Use pinned converted camera axes and preserve
+native associations/timing offsets. Save projection overlays/crops, feature
+checkpoints, model and compact result ZIP. Isolated torchvision0.21.0+cpu;
+no shared venv edits. Existing torch2.6+cpu / NumPy1.26.4 required.
+
+Seven focused tests passed, including synthetic end-to-end source bindings,
+export and resume. Raw/reversed matching parity passed on5 real cached frames.
+Actual pinned CPU MobileNet weights/import/batch feature extraction checked.
+**No Ares job or real RGB result yet; native alignment still needs the exported
+visual QA.** This is proposal reranking, not full trainable BEV fusion. Details:
+[RGB pilot](URBANING_RGB_PILOT.md).
 
 ## Zero-cost controls/classes/recordings completed (2026-11-04)
 
