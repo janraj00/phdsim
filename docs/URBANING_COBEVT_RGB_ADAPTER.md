@@ -1,7 +1,13 @@
 # Car1 RGB adaptation around the existing CoBEVT detector
 
 Status2026-11-06: **Ares preflight21597293 completed and visually reviewed.
-RGB encoder/training and a fusion accuracy result are not available.**
+TRAIN8 RGB encoder/adapter training is now prepared and locally tested;
+no native trained-adapter accuracy result exists.**
+
+The next runnable step is [TRAIN8 adapter training](URBANING_COBEVT_RGB_TRAIN.md):
+reuse native BEV, fit matched LiDAR-only and LiDAR+RGB residual adapters on
+exactly8 TRAIN frames, evaluate those same frames as a memorization diagnostic.
+Keep the completed preflight and the failed standalone model results separate.
 
 ## Completed native run
 
@@ -27,7 +33,7 @@ The sample includes daylight crossing2 and darker crossing1 recordings.
 
 This completes the native feature/head and basic visual-alignment gate.
 It does not establish RGB feature quality, trainability or a detection gain.
-No next training job has been prepared/submitted by this review.
+A separate TRAIN8 training runner has since been prepared as linked above; no training job has been submitted.
 
 
 The CPU standalone detector performed poorly even for LiDAR. Preserve those
@@ -58,8 +64,8 @@ an implementation safeguard, not evidence RGB will improve detection.
 
 RGB and LiDAR must share metric coordinates, extent, resolution and frame.
 Matching array shapes alone does not establish this. The adapter does not
-perform image-to-BEV lifting. That encoder remains to be implemented/selected
-after native geometry inspection. No GT or peer results enter runtime inputs.
+perform image-to-BEV lifting itself. The separate TRAIN8 runner now implements
+a frozen stride16 RGB encoder and calibrated lifting after native geometry QA. No GT or peer results enter runtime inputs.
 
 The initial insertion point is the **Car1-only final BEV immediately before
 the unchanged classification/regression heads**. It is not a multi-agent

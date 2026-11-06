@@ -4,6 +4,38 @@ Updated: **2026-11-06**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Frozen-CoBEVT TRAIN8 adapter training prepared (2026-11-06)
+
+User authorized preparation of actual adapter training after native preflight.
+Implemented `urbaning_cobevt_rgb_train.sbatch`: reuse all8 verified preflight
+BEV caches, reload original frozen32/56 output heads only, no LiDAR backbone/
+transformer inference. Frozen ImageNet MobileNet stride16/48-channel RGB maps,
+no random compression/PCA, calibrated4-height pull onto original100x256 metric
+grid. Fit TRAIN-only normalization; missing views remain zero.
+
+Compare original LiDAR with two same-capacity zero-start residual adapters:
+LiDAR-only context and LiDAR+RGB, identical initialization/order/schedule.
+Fixed64epochs x8 frames each, AdamW.001, clip1, raw-residual penalty.0001;
+corrections bounded to one train channel standard deviation. Use actual upstream
+anchor target generator/detection loss and unchanged original decoder. Final
+four-class BEV mAP@.5/global sort remains primary; class support and missing
+class macro=N/A explicit, no F1 replacement. Export raw predictions/GT, losses,
+models and plots; fixed within-recording RGB-shuffle diagnostic, no refitting.
+
+This is fitting/evaluation on the SAME8 TRAIN frames, no validation/test or
+crossing3, and not an RGB-only detector. No native training result exists.
+Eight trainer checks plus6 earlier adapter checks passed; actual pinned upstream
+loss at native tensor size supports CPU backward/updates with frozen heads
+(~.29s/step locally on4threads, not an Ares ETA). Source/API review and471
+existing GT corner/center geometry checks also passed. Full native post-training
+decoder/training compatibility remains to be checked on Ares.
+
+Worker8CPU/24GiB/2h upper limit; private torchvision target, existing weights,
+epoch checkpoints/resume and output lock. Output defaults to
+`phdsim/runs/urbaning-cobevt-rgb-adapter-train8-001`.
+See [TRAIN8 adapter protocol](URBANING_COBEVT_RGB_TRAIN.md).
+No job has been submitted from this session.
+
 ## Native CoBEVT RGB preflight completed and reviewed (2026-11-06)
 
 Ares job21597293 completed9m13s, exit0. Supplied ZIP SHA256
