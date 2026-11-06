@@ -4,6 +4,29 @@ Updated: **2026-11-06**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## CoBEVT RGB adapter scaffold and native preflight ready (2026-11-06)
+
+Prepared `urbaning_cobevt_rgb_preflight.sbatch`:8CPU/24GiB/1h upper limit,
+8 fixed TRAIN frames only, official frozen Car1 CoBEVT forward, final BEV
+capture and exact replay through original cls/reg heads. Exports native
+six-camera point/GT projection mosaics, payload hashes, feature shapes/timing.
+No training, RGB accuracy result, new downloads or crossing3. Existing
+validation provenance headers are checked, not validation images/predictions.
+
+Residual RGB adapter starts at exactly zero and preserves LiDAR features.
+Its metric-aligned RGB BEV encoder and detection-loss training remain future
+work. First inspect native geometry; then a tiny TRAIN memorization check
+before larger development training. RGB-only needs separate adaptation.
+Six focused checks including complete synthetic8-frame export passed; native
+Ares execution has not run. See [RGB adaptation plan](URBANING_COBEVT_RGB_ADAPTER.md).
+
+A supervisor brief separately summarizes existing1400-frame LiDAR acquisition:
+ALWAYS33.7102%/2033; predeclared geometry/top10 cost.5 32.6966%/1448
+(28.78% fewer,1.0136pp loss); post-hoc cost0 33.6741%/1813
+(10.82% fewer,.0361pp loss). Equal1448 random31.0770%;
+equal1813 random32.7412%, strong Infra-priority random33.1509%.
+Do not mix these with the failed small standalone RGB/BEV prototype.
+
 ## CPU standalone BEV run completed and audited (2026-11-06)
 
 Ares job21594614 produced a completed export: ZIP SHA256
