@@ -6,6 +6,18 @@ project conversation. Earlier explanations in the
 
 ## Frozen-CoBEVT TRAIN8 adapter training prepared (2026-11-06)
 
+Ares21599373 FAILED before any optimization at the original absolute-only
+1e-6 native logit guard: maximum6.67572e-6 discrepancy, 32830/819200 elements.
+Locally reproduced same-value native-size CPU convolution differences after
+channels-last/contiguous layout changes and NPZ round trip. This is a plausible
+cause, not an independently verified explanation for the Ares caches. Corrected
+guard preserves all input/model hashes, requires float32 allclose at1e-5/1e-5,
+AND identical native decoded counts/classes/order, coordinates within1mm,
+scores within5e-6, exact GT matching and exact AP in BOTH ordering modes.
+Saves native-parity.json even on failure. Native retry pending; no training
+result or RGB improvement. Use fresh train8-002 output; preserve train8-001.
+Thirteen trainer tests plus6 earlier adapter checks cover the corrected gate.
+
 User authorized preparation of actual adapter training after native preflight.
 Implemented `urbaning_cobevt_rgb_train.sbatch`: reuse all8 verified preflight
 BEV caches, reload original frozen32/56 output heads only, no LiDAR backbone/
@@ -32,9 +44,9 @@ decoder/training compatibility remains to be checked on Ares.
 
 Worker8CPU/24GiB/2h upper limit; private torchvision target, existing weights,
 epoch checkpoints/resume and output lock. Output defaults to
-`phdsim/runs/urbaning-cobevt-rgb-adapter-train8-001`.
+`phdsim/runs/urbaning-cobevt-rgb-adapter-train8-002` (corrected parity guard).
 See [TRAIN8 adapter protocol](URBANING_COBEVT_RGB_TRAIN.md).
-No job has been submitted from this session.
+Job21599373 was submitted by the user; the corrected rerun is not submitted.
 
 ## Native CoBEVT RGB preflight completed and reviewed (2026-11-06)
 

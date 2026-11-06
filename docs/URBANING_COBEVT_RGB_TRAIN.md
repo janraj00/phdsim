@@ -1,8 +1,12 @@
 # Frozen-CoBEVT adapter: eight-frame TRAIN memorization check
 
-Status2026-11-06: **implemented and locally checked; no Ares adapter training
-run or native accuracy result yet.** This is the next gate after reviewed
-preflight21597293. It is not an independent validation experiment.
+Status2026-11-06: **Ares21599373 stopped at the pre-training logit parity guard;
+no optimizer updates or native adapter accuracy result.** The original1e-6
+absolute-only check rejected a maximum6.67572021484375e-6 difference (4% of
+819200 classification elements; reported maximum relative error1.1067e-6).
+This is the next gate after reviewed preflight21597293, not an independent
+validation experiment. The corrected guard below is locally checked; its
+native rerun is still pending.
 
 ## Scope and reuse
 
@@ -19,9 +23,27 @@ match SHA256
 `8608d07b6862e3288718b0e4469ccb1e983439973c5a96e845cb2263048b9429`.
 Verify every BEV NPZ hash, exact keys/native associations and48 image hashes.
 Reload only the official frozen classification/regression heads, not the
-LiDAR backbone or inter-agent transformer. Replaying the loaded features
-must agree with every cached native logit within1e-6 before optimization.
-No new source download/conversion or LiDAR detector inference is needed.
+LiDAR backbone or inter-agent transformer. No new source download/conversion
+or LiDAR detector inference is needed.
+
+NPZ serialization does not preserve arbitrary PyTorch strides. Locally, the
+same float32 input/weights at the actual1x256x100x256 shape produced maximum
+8.58e-6/1.14e-5 cls/reg differences between channels-last and contiguous CPU
+convolutions; NPZ round trip changed the input to contiguous without changing
+any value. This reproduces a plausible numerical mechanism, not proof of the
+exact Ares cause: the raw native caches are not available locally.
+
+The revised **two-level parity gate** keeps every source/cache/weight hash
+check. Float32 logits must have identical shapes, be finite, and agree elementwise
+within `1e-5 + 1e-5 * abs(cached_logit)`. Then decode BOTH cached and replayed
+logits through the unchanged native decoder. Require identical detection count
+and class/order; corresponding box corners within1mm and scores within5e-6;
+identical radius-filtered TP/FP matching at IoU.3/.5/.7; and EXACTLY identical
+per-class and macro AP in both ordering modes across all8 frames. No tolerances
+or training settings are selected by GT. These are offline equivalence checks.
+Any failed condition stops before RGB extraction or optimization. Diagnostics
+(`native-parity.json`, including per-frame logit errors/strides) are written on
+success or failure; the successful report is included in the final ZIP.
 
 ## RGB representation and trainable part
 
@@ -99,14 +121,18 @@ these development recordings. Native camera timing offsets remain offline.
 From the new checkout root:
 
 ```bash
-sbatch -A plgkgacq-cpu scripts/slurm/urbaning_cobevt_rgb_train.sbatch
+sbatch -A plgkgacq-cpu scripts/slurm/urbaning_cobevt_rgb_train.sbatch \
+  /net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work/phdsim/runs/urbaning-cobevt-rgb-adapter-train8-002
 ```
 
 Uses8CPU/24GiB/**2h upper limit**, not an ETA. Reuses the existing Singularity
 wrapper and official cached ImageNet weights. torchvision is installed only
 into the private output dependency target if needed; no shared venv change.
 No GPU allocation is assumed. Default output:
-`phdsim/runs/urbaning-cobevt-rgb-adapter-train8-001`.
+`phdsim/runs/urbaning-cobevt-rgb-adapter-train8-002`.
+Preserve the failed21599373 output `...train8-001`; its source-identity config
+correctly prevents reuse with changed code. The new run reuses the original
+preflight caches, not the failed output. No previous training updates are lost.
 Repeat the same command at the same commit to resume the last full epoch;
 a lock rejects concurrent writers. A completed ZIP is reused after checksum
 verification. Existing preflight caches and original model remain unchanged.
@@ -117,12 +143,16 @@ time and final TRAIN metrics. Return
 
 ## Local checks
 
-Eight focused trainer checks cover rectangular lifting and missing-view masks;
+Thirteen focused trainer checks cover rectangular lifting and missing-view masks;
 strict RGB exclusion from the LiDAR control; zero-start/bounded corrections;
 gradients through frozen heads without changing their weights; loss decrease;
 exact interrupted-epoch resume; within-recording GT-free shuffle; unchanged
 raw-GT export/missing-class AP handling; complete synthetic8-frame training,
-report/model/prediction/ZIP export and completed resume. Six previous adapter/
+report/model/prediction/ZIP export and completed resume. The added parity tests
+exercise actual native-size convolutions/NPZ layout conversion, acceptance of
+small float32 noise, rejection of significant logit drift/non-finite/shape/dtype
+changes, and hard rejection of changed counts/classes/coordinates/scores,
+threshold-crossing GT matches or cross-frame AP ranking. Six previous adapter/
 preflight checks also pass. The complete synthetic test mocks upstream I/O,
 RGB extraction and decoding; its artificial AP values are not research results.
 
@@ -132,4 +162,4 @@ update works, loss falls across10 synthetic steps and head gradients stay
 absent. Measured~.29s/step on4 local threads, excluding native I/O, decoder
 and Ares variability. This is not an Ares duration estimate. Source/API review
 covered the pinned target generator/postprocessor. Full native adapter training
-and post-training decoding remain untested until the Ares run.
+and post-training decoding remain untested;21599373 never reached optimization.

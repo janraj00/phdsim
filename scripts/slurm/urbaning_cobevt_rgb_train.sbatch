@@ -13,7 +13,7 @@ cd "${SLURM_SUBMIT_DIR:?Submit from the adapter training checkout root}"
 WORK=/net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work
 BASE="$WORK/phdsim"
 PREFLIGHT="$BASE/runs/urbaning-cobevt-rgb-preflight-21597293"
-OUT="${1:-$BASE/runs/urbaning-cobevt-rgb-adapter-train8-001}"
+OUT="${1:-$BASE/runs/urbaning-cobevt-rgb-adapter-train8-002}"
 test -x "$WORK/bin/urbaning-python.sh"
 test -f "$PREFLIGHT/urbaning-cobevt-rgb-preflight.zip"
 test -f "$BASE/runs/urbaning-rgb-pilot-001/weights/checkpoints/mobilenet_v3_small-047dcff4.pth"

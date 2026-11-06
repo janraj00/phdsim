@@ -6,6 +6,7 @@ from unittest.mock import patch
 import hashlib
 import json
 import zipfile
+import io
 
 import numpy as np
 import torch
@@ -14,7 +15,9 @@ from torch import nn
 from phdsim.perception.urbaning.cobevt_rgb_training import (
     BoundedAdapter, lift_rectangular, fit_normalizers, context, shuffled_indices, original_heads,
 )
-from phdsim.experiments.urbaning_cobevt_rgb_train import optimize, evaluate, ground_prior, run
+from phdsim.experiments.urbaning_cobevt_rgb_train import (
+    optimize, evaluate, ground_prior, run, logit_parity, verify_native_parity,
+)
 from phdsim.perception.urbaning.cobevt_rgb_adapter import metric_grid
 from phdsim.perception.urbaning.bev_cpu import corners
 
@@ -45,6 +48,91 @@ def runtime():
 
 
 class RGBTrainingTests(unittest.TestCase):
+    def test_native_size_npz_layout_roundoff_is_not_weight_drift(self):
+        torch.manual_seed(0)
+        x=torch.randn(1,256,100,256)*4
+        channels_last=x.contiguous(memory_format=torch.channels_last)
+        stream=io.BytesIO();np.savez_compressed(stream,bev=channels_last.numpy());stream.seek(0)
+        with np.load(stream,allow_pickle=False) as z:reloaded=torch.from_numpy(z['bev'].copy())
+        self.assertTrue(torch.equal(channels_last,reloaded))
+        self.assertNotEqual(channels_last.stride(),reloaded.stride())
+        for count in (32,56):
+            head=nn.Conv2d(256,count,1).eval().requires_grad_(False)
+            cached=head(channels_last);replayed=head(reloaded)
+            measured=logit_parity(replayed,cached)
+            self.assertEqual(measured['outside_tolerance'],0)
+            # Do not require a particular CPU to select different arithmetic kernels.
+            bad=replayed.clone();bad[0,0,0,0]+=.01
+            self.assertGreater(logit_parity(bad,cached)['outside_tolerance'],0)
+
+    def test_logit_roundoff_gate_rejects_nonfinite_shape_and_dtype_changes(self):
+        x=torch.ones(1,32,4,6)
+        self.assertEqual(logit_parity(x+7e-6,x)['outside_tolerance'],0)
+        self.assertGreater(logit_parity(x+.001,x)['outside_tolerance'],0)
+        for bad in (x.double(),x[:,:,:,:-1],x*float('nan'),x*float('inf')):
+            with self.assertRaises(ValueError):logit_parity(bad,x)
+
+    def parity_fixture(self):
+        fs=features(2);r=runtime()
+        boxes=np.stack([corners([x,0,0],2,3,2,0) for x in (-9,-3,3,9)])
+        labels=np.arange(1,5);scores=np.c_[np.full(4,.9),labels]
+        rows=[]
+        for i,f in enumerate(fs):
+            with torch.no_grad():f.update({k:v+7e-6 for k,v in original_heads(*r.heads,f['bev']).items()})
+            f['cache_sha256']='fixture'
+            rows.append({'key':f'train:{i}:100000','gt_boxes':boxes,'gt_labels':labels})
+        r.decode=lambda out:(boxes.copy(),scores.copy())
+        return rows,fs,r,boxes,scores
+
+    def test_parity_records_roundoff_but_requires_identical_decode_and_ap(self):
+        rows,fs,r,boxes,scores=self.parity_fixture()
+        with tempfile.TemporaryDirectory() as t:
+            path=Path(t)/'parity.json';report=verify_native_parity(rows,fs,r,path)
+            self.assertEqual(json.loads(path.read_text()),report)
+            self.assertEqual(report['status'],'passed')
+            self.assertTrue(report['matching_and_ap_identical'])
+            self.assertGreater(report['frames'][0]['logits']['rm']['old_atol_1e6_mismatches'],0)
+            self.assertEqual(len(report['metrics']),2)
+            self.assertTrue(all('psm' not in f for f in fs))
+
+    def test_parity_stops_on_changed_counts_classes_boxes_scores_and_matching(self):
+        for kind in ('count','class','box','score','matching','logit'):
+            with self.subTest(kind=kind),tempfile.TemporaryDirectory() as t:
+                rows,fs,r,boxes,scores=self.parity_fixture()
+                changed_boxes=boxes.copy();changed_scores=scores.copy()
+                if kind=='count':changed_boxes=boxes[:-1];changed_scores=scores[:-1]
+                elif kind=='class':changed_scores[0,1]=2
+                elif kind=='box':changed_boxes[0,:,0]+=.01
+                elif kind=='score':changed_scores[0,0]-=.001
+                elif kind=='matching':
+                    # 0.2mm coordinate drift is within box tolerance, but crosses IoU .5.
+                    changed_boxes[0,:,0]+=2e-4
+                    rows[0]['gt_boxes']=boxes.copy();rows[0]['gt_boxes'][0,:,0]+=2/3+1e-4
+                elif kind=='logit':fs[0]['rm']+=.01
+                calls=[(boxes,scores),(changed_boxes,changed_scores)]
+                r.decode=lambda out:calls.pop(0)
+                path=Path(t)/'parity.json'
+                with self.assertRaises((ValueError,AssertionError)):
+                    verify_native_parity(rows,fs,r,path)
+                report=json.loads(path.read_text())
+                self.assertEqual(report['status'],'failed');self.assertIn('error',report)
+                self.assertTrue(all('psm' in f for f in fs))
+
+    def test_parity_rejects_changed_global_score_ranking_even_if_frame_matches_same(self):
+        rows,fs,r,boxes,scores=self.parity_fixture()
+        # One TP in frame0, one FP in frame1: tiny cross-frame score inversion changes AP.
+        rows[0]['gt_boxes']=boxes[:1];rows[0]['gt_labels']=np.array([1])
+        rows[1]['gt_boxes']=boxes[:1];rows[1]['gt_labels']=np.array([1])
+        false_box=boxes[:1].copy();false_box[:,:,1]+=10
+        results=[(boxes[:1],np.array([[.5,1]])),(boxes[:1],np.array([[.5-1e-6,1]])),
+                 (false_box,np.array([[.5-1e-6,1]])),(false_box,np.array([[.5,1]]))]
+        r.decode=lambda out:results.pop(0)
+        with tempfile.TemporaryDirectory() as t:
+            path=Path(t)/'parity.json'
+            with self.assertRaisesRegex(ValueError,'Native AP changed'):
+                verify_native_parity(rows,fs,r,path)
+            self.assertEqual(json.loads(path.read_text())['status'],'failed')
+
     def test_rectangular_lift_and_mask_not_square_resize(self):
         xy=metric_grid((4,6),[-3,-2,-1,3,2,2]);maps=torch.ones(1,2,8,8)
         e=np.eye(4);k=np.array([[1.,0,4],[0,1,4],[0,0,1.]])

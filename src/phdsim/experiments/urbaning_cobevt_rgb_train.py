@@ -29,6 +29,88 @@ from phdsim.perception.urbaning.cobevt_rgb_training import (SpatialEncoder, lift
 SCHEMA='phdsim-cobevt-rgb-adapter-train8-v1'
 PREFLIGHT_SHA='8608d07b6862e3288718b0e4469ccb1e983439973c5a96e845cb2263048b9429'
 MODES=('lidar_adapter','lidar_rgb_adapter')
+PARITY_LIMITS={'logit_atol':1e-5,'logit_rtol':1e-5,
+               'box_atol_m':1e-3,'score_atol':5e-6}
+
+
+def logit_parity(actual,expected):
+    """NPZ serialization can change convolution layout/kernel, not its inputs.
+
+    Float32 agreement is necessary but not sufficient: verify_native_parity
+    also requires unchanged decoded detections, matching and both AP modes.
+    """
+    if actual.shape!=expected.shape or actual.dtype!=torch.float32 or expected.dtype!=torch.float32:
+        raise ValueError('Native logit shape/dtype changed')
+    if not bool(actual.isfinite().all() and expected.isfinite().all()):
+        raise ValueError('Non-finite native logits')
+    delta=(actual-expected).abs()
+    allowed=PARITY_LIMITS['logit_atol']+PARITY_LIMITS['logit_rtol']*expected.abs()
+    return {'max_abs_error':float(delta.max()),
+            'old_atol_1e6_mismatches':int((delta>1e-6).sum()),
+            'outside_tolerance':int((delta>allowed).sum()),
+            'elements':delta.numel(),'replay_stride':list(actual.stride()),
+            'cached_stride':list(expected.stride())}
+
+
+def verify_native_parity(records,features,runtime,path):
+    """Fail before RGB extraction/optimization if cache replay changes behavior.
+
+    Cache SHA256 and official head weights are verified by the callers. Compare
+    native and replayed logits through the SAME unchanged decoder. GT is only
+    used for this offline parity check, never to choose or adjust the tolerances.
+    Save diagnostics even on failure; never repair/overwrite source caches.
+    """
+    report={'status':'running','limits':PARITY_LIMITS,'frames':[],
+            'scope':'offline native cache/head parity before optimization'}
+    cached_stats=[];replay_stats=[]
+    try:
+        if not records or len(records)!=len(features):raise ValueError('Native parity inventory differs')
+        with torch.no_grad():
+            for record,feature in zip(records,features):
+                row={'key':record['key'],'cache_sha256':feature['cache_sha256'],
+                     'bev_stride':list(feature['bev'].stride()),'logits':{}}
+                report['frames'].append(row)
+                cached={k:feature[k] for k in ('psm','rm')}
+                replay=original_heads(*runtime.heads,feature['bev'])
+                for key in cached:
+                    row['logits'][key]=logit_parity(replay[key],cached[key])
+                    if row['logits'][key]['outside_tolerance']:
+                        raise ValueError(f'Native {key} logits differ beyond float32 parity limits: {record["key"]}')
+                old_boxes,old_scores=runtime.decode(cached)
+                new_boxes,new_scores=runtime.decode(replay)
+                if old_boxes.shape!=new_boxes.shape or old_scores.shape!=new_scores.shape:
+                    raise ValueError(f'Native decoded detection count changed: {record["key"]}')
+                if not np.array_equal(old_scores[:,1],new_scores[:,1]):
+                    raise ValueError(f'Native decoded class/order changed: {record["key"]}')
+                np.testing.assert_allclose(new_boxes,old_boxes,rtol=0,atol=PARITY_LIMITS['box_atol_m'])
+                np.testing.assert_allclose(new_scores[:,0],old_scores[:,0],rtol=0,atol=PARITY_LIMITS['score_atol'])
+                old=frame_statistics(old_boxes,old_scores,record['gt_boxes'],record['gt_labels'])
+                new=frame_statistics(new_boxes,new_scores,record['gt_boxes'],record['gt_labels'])
+                for name in old:
+                    for iou in old[name]:
+                        for field in ('gt','tp','fp'):
+                            if old[name][iou][field]!=new[name][iou][field]:
+                                raise ValueError(f'Native GT matching changed: {record["key"]}, {name}, IoU{iou}')
+                cached_stats.append(old);replay_stats.append(new)
+                row.update({'detections':len(old_boxes),'max_box_error_m':float(np.max(np.abs(new_boxes-old_boxes),initial=0)),
+                            'max_score_error':float(np.max(np.abs(new_scores[:,0]-old_scores[:,0]),initial=0)),
+                            'matching_identical':True})
+                print(f'PARITY {len(report["frames"])}/{len(records)} {record["key"]} detections={len(old_boxes)} passed',flush=True)
+        old_total=aggregate_statistics(cached_stats);new_total=aggregate_statistics(replay_stats)
+        report['metrics']={}
+        for name,global_sort in (('global_confidence_sort',True),('upstream_default_frame_order',False)):
+            old=summarize_cached(old_total,global_sort);new=summarize_cached(new_total,global_sort)
+            if old!=new:raise ValueError(f'Native AP changed: {name}')
+            report['metrics'][name]=new
+        report['status']='passed';report['matching_and_ap_identical']=True
+    except Exception as exc:
+        report['status']='failed';report['error']=f'{type(exc).__name__}: {exc}'
+        write_json(path,report)
+        raise
+    write_json(path,report)
+    for feature in features:
+        del feature['psm'],feature['rm']
+    return report
 
 
 def code_identity():
@@ -250,6 +332,7 @@ def run(base,preflight,upstream,model_dir,output,weights,threads,epochs=64):
         'preflight_zip_sha256':PREFLIGHT_SHA,'epochs':epochs,'seed':0,'learning_rate':.001,
         'weight_decay':1e-4,'residual_penalty':1e-4,'max_delta':'one TRAIN channel standard deviation via tanh',
         'hidden_channels':16,'threads':threads,'scope':'TRAIN8 memorization; no validation/test',
+        'native_parity_limits':PARITY_LIMITS,
         'train_modes':list(MODES),'evaluation':'fixed original decode;4-class global-sort BEV mAP@.5'}
     config_path=output/'configuration.json'
     if config_path.exists() and json.loads(config_path.read_text())!=configuration:raise ValueError('Output configuration differs')
@@ -265,11 +348,8 @@ def run(base,preflight,upstream,model_dir,output,weights,threads,epochs=64):
     records,features,provenance=verified_inputs(base,preflight,output,config)
     heads=load_frozen_heads(model_dir);snapshot=[{k:v.clone() for k,v in h.state_dict().items()} for h in heads]
     runtime=native_runtime(config,heads)
-    for f in features:
-        native=original_heads(*heads,f['bev'])
-        for k in ('psm','rm'):torch.testing.assert_close(native[k],f[k],rtol=0,atol=1e-6)
-        del f['psm'],f['rm']
-    print('PARITY original heads vs all8 reviewed native logits passed',flush=True)
+    parity=verify_native_parity(records,features,runtime,output/'native-parity.json')
+    print('PARITY all8 native logits, decoded detections, GT matching and both AP modes passed',flush=True)
     ground=ground_prior(records)
     weight_file=weights/'checkpoints/mobilenet_v3_small-047dcff4.pth'
     if not weight_file.is_file() or sha(weight_file.read_bytes())!=WEIGHTS_SHA:raise ValueError('Existing official ImageNet weights required')
@@ -309,7 +389,7 @@ def run(base,preflight,upstream,model_dir,output,weights,threads,epochs=64):
         if any(not torch.equal(original[k],v) for k,v in head.state_dict().items()):raise ValueError('Original head mutated')
     report={'schema':SCHEMA,'status':'completed','scope':'eight TRAIN frames, same frames for fitting and evaluation',
         'validation_frames':0,'test_frames':0,'metrics':metrics,'training':histories,'target_statistics':target_summary,
-        'protocol':configuration,'head_weights_unchanged':True,'zero_start_exact':True,
+        'protocol':configuration,'native_parity':parity,'head_weights_unchanged':True,'zero_start_exact':True,
         'limitations':['Memorization diagnostic only; no generalization/fusion benefit claim',
             'Both learned variants retain Car1 LiDAR; no RGB-only detector',
             'Frozen ImageNet stride16 RGB encoder; four fixed height planes; no depth/occlusion supervision',
@@ -329,7 +409,7 @@ def run(base,preflight,upstream,model_dir,output,weights,threads,epochs=64):
     (output/'summary.md').write_text('\n'.join(lines)+'\n');print('\n'.join(lines),flush=True)
     archive=output/'urbaning-cobevt-rgb-adapter-train8.zip'
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
-        for name in ('configuration.json','inputs.json','normalizers.json','target-statistics.json','report.json','summary.md'):
+        for name in ('configuration.json','inputs.json','native-parity.json','normalizers.json','target-statistics.json','report.json','summary.md'):
             z.write(output/name,name)
         for mode in MODES:
             for name in ('model-final.pt','training-history.json'):z.write(output/mode/name,mode+'/'+name)
