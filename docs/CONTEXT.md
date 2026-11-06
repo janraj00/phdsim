@@ -14,8 +14,16 @@ cause, not an independently verified explanation for the Ares caches. Corrected
 guard preserves all input/model hashes, requires float32 allclose at1e-5/1e-5,
 AND identical native decoded counts/classes/order, coordinates within1mm,
 scores within5e-6, exact GT matching and exact AP in BOTH ordering modes.
-Saves native-parity.json even on failure. Native retry pending; no training
-result or RGB improvement. Use fresh train8-002 output; preserve train8-001.
+Saves native-parity.json even on failure. Ares21599465 passed ALL8 native
+logit/decode/GT matching and both-AP checks, then stopped before optimization:
+the entrypoint hash-seed re-exec had discarded the bootstrapped private
+torchvision path. Bootstrap now restarts BEFORE imports; verifies the private
+module location and prints versions/path/hash seed. Three child-process tests
+reproduce the old failure and check corrected startup across unset/nonzero/zero
+seeds. Actual local pinned torch/torchvision + SpatialEncoder/weights in a child
+process produced6x48x24x40 RGB maps. Corrected native launch pending; no training
+result or RGB improvement. Resume train8-002 (launcher-only change leaves
+training identities/settings unchanged); preserve train8-001.
 Thirteen trainer tests plus6 earlier adapter checks cover the corrected gate.
 
 User authorized preparation of actual adapter training after native preflight.
@@ -46,7 +54,7 @@ Worker8CPU/24GiB/2h upper limit; private torchvision target, existing weights,
 epoch checkpoints/resume and output lock. Output defaults to
 `phdsim/runs/urbaning-cobevt-rgb-adapter-train8-002` (corrected parity guard).
 See [TRAIN8 adapter protocol](URBANING_COBEVT_RGB_TRAIN.md).
-Job21599373 was submitted by the user; the corrected rerun is not submitted.
+Jobs21599373/21599465 stopped before optimization; launcher fix not yet submitted.
 
 ## Native CoBEVT RGB preflight completed and reviewed (2026-11-06)
 

@@ -1,12 +1,25 @@
 # Frozen-CoBEVT adapter: eight-frame TRAIN memorization check
 
-Status2026-11-06: **Ares21599373 stopped at the pre-training logit parity guard;
-no optimizer updates or native adapter accuracy result.** The original1e-6
+Status2026-11-06: **Ares21599465 passed the revised parity gate on all8 native
+frames, then stopped at the RGB encoder import; no optimizer updates or native
+adapter accuracy result.** The earlier21599373 stopped because the original1e-6
 absolute-only check rejected a maximum6.67572021484375e-6 difference (4% of
 819200 classification elements; reported maximum relative error1.1067e-6).
 This is the next gate after reviewed preflight21597293, not an independent
-validation experiment. The corrected guard below is locally checked; its
-native rerun is still pending.
+validation experiment.
+
+The import failure was a launcher bug: `urbaning_rgb_env.py` imported private
+torchvision, then the training entrypoint re-executed Python to set
+`PYTHONHASHSEED=0`. That restart skipped the bootstrap and discarded its private
+`sys.path` additions. The bootstrap now performs its own deterministic restart
+BEFORE importing dependencies. The entrypoint then needs no restart. It verifies
+the torchvision module path is inside the private target and prints runtime
+versions/path/hash seed before any native work. Three real child-process tests
+cover unset/nonzero/zero seeds, retained arguments/private imports, reproduction
+of the old failure and incompatible-runtime rejection. A separate local process
+with actual pinned torch/torchvision and existing ImageNet weights passed the
+same entrypoint hash guard and produced6x48x24x40 maps from the actual SpatialEncoder.
+The corrected Ares launch remains pending; no shared venv changes.
 
 ## Scope and reuse
 
@@ -131,8 +144,11 @@ into the private output dependency target if needed; no shared venv change.
 No GPU allocation is assumed. Default output:
 `phdsim/runs/urbaning-cobevt-rgb-adapter-train8-002`.
 Preserve the failed21599373 output `...train8-001`; its source-identity config
-correctly prevents reuse with changed code. The new run reuses the original
-preflight caches, not the failed output. No previous training updates are lost.
+correctly prevents reuse with the changed parity code. After21599465, the
+launcher-only fix can resume `...train8-002`: numerical/model/training source
+identities and settings are unchanged and still checked. Its private torchvision
+target is reused. The native parity gate is rerun; no optimizer updates exist
+yet. Original preflight caches remain unchanged.
 Repeat the same command at the same commit to resume the last full epoch;
 a lock rejects concurrent writers. A completed ZIP is reused after checksum
 verification. Existing preflight caches and original model remain unchanged.
@@ -162,4 +178,7 @@ update works, loss falls across10 synthetic steps and head gradients stay
 absent. Measured~.29s/step on4 local threads, excluding native I/O, decoder
 and Ares variability. This is not an Ares duration estimate. Source/API review
 covered the pinned target generator/postprocessor. Full native adapter training
-and post-training decoding remain untested;21599373 never reached optimization.
+and post-training decoding remain untested;21599373/21599465 never reached
+optimization. Native cached-logit/decode/matching/both-AP parity did pass on
+all8 frames in21599465. The launcher additionally has the3 child-process checks
+and actual pinned SpatialEncoder startup smoke described above.

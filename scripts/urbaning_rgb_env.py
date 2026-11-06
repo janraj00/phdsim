@@ -1,4 +1,4 @@
-"""Install torchvision into an isolated target, then execute the pilot."""
+"""Start deterministic Python, load private torchvision, then run the entrypoint."""
 import importlib.metadata
 import os
 from pathlib import Path
@@ -8,6 +8,12 @@ import sys
 
 
 def main():
+    # Entrypoints re-exec Python when the hash seed is unset/different. Do this
+    # HERE first: a later re-exec would lose our in-process sys.path additions
+    # and skip this bootstrap, making the private torchvision target disappear.
+    if os.environ.get('PYTHONHASHSEED') != '0':
+        os.environ['PYTHONHASHSEED'] = '0'
+        os.execv(sys.executable, [sys.executable, '-u', *sys.argv])
     dependencies = Path(sys.argv[1]).resolve()
     entrypoint = Path(sys.argv[2]).resolve()
     arguments = sys.argv[3:]
@@ -27,6 +33,11 @@ def main():
     import torchvision
     if torchvision.__version__ != '0.21.0+cpu':
         raise RuntimeError('Unexpected torchvision runtime')
+    if not Path(torchvision.__file__).resolve().is_relative_to(dependencies):
+        raise RuntimeError('torchvision did not load from the private dependency target')
+    print('VERIFIED isolated RGB runtime:', {'torch':torch.__version__,
+          'numpy':numpy.__version__,'torchvision':torchvision.__version__,
+          'torchvision_file':torchvision.__file__,'PYTHONHASHSEED':os.environ['PYTHONHASHSEED']},flush=True)
     os.environ['SLURM_CPUS_PER_TASK'] = os.environ.get('SLURM_CPUS_PER_TASK', '8')
     sys.argv = [str(entrypoint), *arguments]
     runpy.run_path(str(entrypoint), run_name='__main__')
