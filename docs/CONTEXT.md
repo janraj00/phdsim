@@ -1,8 +1,175 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-05**. This document summarizes the latest decisions in the
+Updated: **2026-11-06**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Frozen-CoBEVT TRAIN8 adapter training prepared (2026-11-06)
+
+Ares21599373 FAILED before any optimization at the original absolute-only
+1e-6 native logit guard: maximum6.67572e-6 discrepancy, 32830/819200 elements.
+Locally reproduced same-value native-size CPU convolution differences after
+channels-last/contiguous layout changes and NPZ round trip. This is a plausible
+cause, not an independently verified explanation for the Ares caches. Corrected
+guard preserves all input/model hashes, requires float32 allclose at1e-5/1e-5,
+AND identical native decoded counts/classes/order, coordinates within1mm,
+scores within5e-6, exact GT matching and exact AP in BOTH ordering modes.
+Saves native-parity.json even on failure. Ares21599465 passed ALL8 native
+logit/decode/GT matching and both-AP checks, then stopped before optimization:
+the entrypoint hash-seed re-exec had discarded the bootstrapped private
+torchvision path. Bootstrap now restarts BEFORE imports; verifies the private
+module location and prints versions/path/hash seed. Three child-process tests
+reproduce the old failure and check corrected startup across unset/nonzero/zero
+seeds. Actual local pinned torch/torchvision + SpatialEncoder/weights in a child
+process produced6x48x24x40 RGB maps. Corrected native launch pending; no training
+result or RGB improvement. Resume train8-002 (launcher-only change leaves
+training identities/settings unchanged); preserve train8-001.
+Thirteen trainer tests plus6 earlier adapter checks cover the corrected gate.
+
+User authorized preparation of actual adapter training after native preflight.
+Implemented `urbaning_cobevt_rgb_train.sbatch`: reuse all8 verified preflight
+BEV caches, reload original frozen32/56 output heads only, no LiDAR backbone/
+transformer inference. Frozen ImageNet MobileNet stride16/48-channel RGB maps,
+no random compression/PCA, calibrated4-height pull onto original100x256 metric
+grid. Fit TRAIN-only normalization; missing views remain zero.
+
+Compare original LiDAR with two same-capacity zero-start residual adapters:
+LiDAR-only context and LiDAR+RGB, identical initialization/order/schedule.
+Fixed64epochs x8 frames each, AdamW.001, clip1, raw-residual penalty.0001;
+corrections bounded to one train channel standard deviation. Use actual upstream
+anchor target generator/detection loss and unchanged original decoder. Final
+four-class BEV mAP@.5/global sort remains primary; class support and missing
+class macro=N/A explicit, no F1 replacement. Export raw predictions/GT, losses,
+models and plots; fixed within-recording RGB-shuffle diagnostic, no refitting.
+
+This is fitting/evaluation on the SAME8 TRAIN frames, no validation/test or
+crossing3, and not an RGB-only detector. No native training result exists.
+Eight trainer checks plus6 earlier adapter checks passed; actual pinned upstream
+loss at native tensor size supports CPU backward/updates with frozen heads
+(~.29s/step locally on4threads, not an Ares ETA). Source/API review and471
+existing GT corner/center geometry checks also passed. Full native post-training
+decoder/training compatibility remains to be checked on Ares.
+
+Worker8CPU/24GiB/2h upper limit; private torchvision target, existing weights,
+epoch checkpoints/resume and output lock. Output defaults to
+`phdsim/runs/urbaning-cobevt-rgb-adapter-train8-002` (corrected parity guard).
+See [TRAIN8 adapter protocol](URBANING_COBEVT_RGB_TRAIN.md).
+Jobs21599373/21599465 stopped before optimization; launcher fix not yet submitted.
+
+## Native CoBEVT RGB preflight completed and reviewed (2026-11-06)
+
+Ares job21597293 completed9m13s, exit0. Supplied ZIP SHA256
+`8608d07b6862e3288718b0e4469ccb1e983439973c5a96e845cb2263048b9429`,
+6,121,251bytes; CRC passed. Exactly8 unique TRAIN keys,4 per existing recording,
+48 bound camera entries, zero validation frames and expected official model
+identity. Each row reports BEV[1,256,100,256] and exactly zero cls/reg head-replay
+error. Raw BEV/logit NPZs stay on Ares, so local review checks report consistency,
+not an independent tensor replay. Full scheduler553s, internal loop355.42s and
+sum of per-frame timers169.31s cover different portions; do not conflate them.
+
+Reviewed all8 six-camera mosaics, including detailed first-frame views at both
+sites. GT boxes visibly align with selected cars/pedestrian and point projections
+are plausible; no obvious gross axis reversal/rotation was seen. This is visual
+QA, not calibrated reprojection-error measurement, depth/occlusion validation or
+an exhaustive per-object check. Native Car1 camera offsets in this sample span
+-1..+44ms. Dark crossing1 and daylight crossing2 appearances are both present.
+
+The feature/head boundary now has a completed native check. RGB image-to-BEV
+encoder, adapter optimization and RGB accuracy evaluation remain unimplemented.
+Next: align RGB features to the original metric BEV grid, freeze CoBEVT, run a
+tiny native TRAIN memorization check plus LiDAR-only adapter control before
+expanding. No new job submitted and no fusion gain claimed.
+See [RGB preflight review](URBANING_COBEVT_RGB_ADAPTER.md).
+
+## CoBEVT RGB adapter scaffold and native preflight ready (2026-11-06)
+
+Prepared `urbaning_cobevt_rgb_preflight.sbatch`:8CPU/24GiB/1h upper limit,
+8 fixed TRAIN frames only, official frozen Car1 CoBEVT forward, final BEV
+capture and exact replay through original cls/reg heads. Exports native
+six-camera point/GT projection mosaics, payload hashes, feature shapes/timing.
+No training, RGB accuracy result, new downloads or crossing3. Existing
+validation provenance headers are checked, not validation images/predictions.
+
+Residual RGB adapter starts at exactly zero and preserves LiDAR features.
+Its metric-aligned RGB BEV encoder and detection-loss training remain future
+work. First inspect native geometry; then a tiny TRAIN memorization check
+before larger development training. RGB-only needs separate adaptation.
+Six focused checks including complete synthetic8-frame export passed; native
+Ares execution has not run. See [RGB adaptation plan](URBANING_COBEVT_RGB_ADAPTER.md).
+
+A supervisor brief separately summarizes existing1400-frame LiDAR acquisition:
+ALWAYS33.7102%/2033; predeclared geometry/top10 cost.5 32.6966%/1448
+(28.78% fewer,1.0136pp loss); post-hoc cost0 33.6741%/1813
+(10.82% fewer,.0361pp loss). Equal1448 random31.0770%;
+equal1813 random32.7412%, strong Infra-priority random33.1509%.
+Do not mix these with the failed small standalone RGB/BEV prototype.
+
+## CPU standalone BEV run completed and audited (2026-11-06)
+
+Ares job21594614 produced a completed export: ZIP SHA256
+`698dd3e9619d10daf2c6c426650cda2eac51143604e888742bce2913d8c28152`,
+11,205,878bytes. Archive CRC and three recorded source hashes checked. Audit
+replayed all600 validation prediction files:200 per modality, identical frame
+keys/GT, all class AP and macro AP at.3/.5/.7 in both ordering modes reproduced
+exactly with NumPy1.26.4. CoBEVT raw predictions are not in this ZIP, so its
+reference AP is carried from the report rather than independently replayed here.
+
+Primary validation200 BEV mAP@.5: RGB0.5490%, LiDAR2.7615%, fusion1.5882%;
+separately trained CoBEVT reference21.5380%. Reported train40 diagnostic:
+RGB2.8140%, LiDAR16.8878%, fusion16.1355%. Training predictions/features are
+not exported, so train AP and native feature alignment were not independently
+verified. Train40 and validation200 are different samples, not an epoch curve.
+
+Offline GT target/decode checks on the same200 validation frames: original
+top40/NMS.2 gives88.9273% mAP; relaxing cap to500 and NMS to1 gives98.0422%.
+These are GT-assisted representation diagnostics, NEVER detector results or
+new tuned validation methods. Original vehicle recall63.5406%; relaxed100%.
+Pedestrian recall92.1687% in both, consistent with169 same-class cell collisions;
+all14937 GT retained. Decoder limits matter but do not explain model AP near0–3%.
+
+LiDAR validation TP@IoU.5: Vehicle1972/12241, Heavy0/249,2Wheeler13/289,
+Pedestrian22/2158. Many false predictions and center errors remain; a simple
+global box-size correction cannot be inferred as the fix. Lower train loss
+and a train/validation gap do not establish the cause. Input projection,
+feature informativeness, optimization and generalization remain open.
+
+No new training job submitted. Next diagnostic should use a tiny fixed set of
+native TRAIN frames, check point/image/GT alignment, and measure ability to
+memorize those exact frames before changing scale or claiming fusion gains.
+Preserve this8-epoch result; no crossing3 or validation parameter selection.
+See [CPU BEV results/audit](URBANING_BEV_CPU.md).
+
+## CPU standalone BEV triplet prepared (2026-11-05)
+
+User wants to continue CPU work while a GPU grant would take time. Updated
+hpc-grants: CPU25000h granted/406.21h consumed; storage500GB; **no GPU allocation**.
+Visible GPU partitions are not authorization to run them. Full BEVFusion remains
+separate GPU/adaptation work; current choice is a small CPU prototype that creates
+new box centers/sizes/orientations, not another proposal scorer or2D metric switch.
+
+Prepared `urbaning_bev_cpu.sbatch`:8CPU/24GiB/6h upper limit, same400 train/200
+validation. Three independently trained, identical small heads with strict input
+masks:RGB-only, Car1 point-grid LiDAR-only, RGB+LiDAR. Old pretrained CoBEVT is
+only an external reference (different training, possibly saw development clips).
+Frozen ImageNet MobileNet spatial maps,16-channel fixed compression, calibrated
+voxel pull at4 heights,200x200 grid/1.1m cells; train-only ground/box priors.
+No reproduction of Simple-BEV/BEVFusion or universal modality claim. Coarse
+representation/depth ambiguity/frozen encoder limit expected accuracy.
+
+Important correction: **26 was correct LiDAR two-wheeler proposals**, not all
+train annotations. Full train GT is Vehicle18196,Heavy1258,2Wheeler389,Ped2920
+frame instances. New heads train on all GT, including LiDAR misses. Same primary
+four-class BEV mAP@.5, global sort, original0–100m radius filter; fresh matching,
+class AP and raw predictions/GT exported. No GT removed for target-cell collisions.
+Fixed8 epochs, final epoch only, same initialization/order/optimizer; no validation
+search, no crossing3. Native associations remain offline. Runtime RGB-only input
+never receives LiDAR values/proposals/scores and vice versa.
+
+Feature/model checkpoint resume, isolated old CPU runtime, no source rewriting.
+Eleven focused tests and actual full-size synthetic RGB/CPU training smoke passed;
+local rates~.49s for6-view encode/lift and~.067s per head update on4 threads,
+not an Ares estimate. **No native Ares run, job ID or AP result yet.** See
+[CPU standalone BEV protocol](URBANING_BEV_CPU.md).
 
 ## Car1 RGB full400/200 completed and checked (2026-11-05)
 
