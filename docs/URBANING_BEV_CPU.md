@@ -1,7 +1,108 @@
 # Proposal-independent Car1 BEV detection on CPU
 
-Prepared 2026-11-05 after the user explicitly asked to keep working on CPU
-while a GPU grant is unavailable. **No Ares result or submission yet.**
+Completed Ares run **21594614**, audited 2026-11-06. The prototype produced
+poor detection results; it is not a validated multimodal baseline.
+
+## Completed run and offline audit
+
+Source commit: `8e83d2cbd027c5ee0efadb9ac4778e8611eaa18b`. Supplied ZIP
+SHA256 `698dd3e9619d10daf2c6c426650cda2eac51143604e888742bce2913d8c28152`,
+11,205,878 bytes, valid CRC. All three recorded source hashes match. Internal
+feature/training/evaluation timer is1217.10s; full scheduler elapsed was not
+provided. No new training or detector calls were made during this audit.
+
+Primary metric remains four-class BEV VOC mAP@IoU.5, global confidence sort,
+historical0–100m corner-radius filter. Percent values:
+
+| Model | Reported training diagnostic,40 frames | Validation,200 frames |
+|---|---:|---:|
+| RGB | 2.8140 | 0.5490 |
+| LiDAR | 16.8878 | 2.7615 |
+| RGB+LiDAR | 16.1355 | 1.5882 |
+| Separately pretrained CoBEVT reference | Not provided | 21.5380 |
+
+The training column is a final-model diagnostic on a different40-frame sample,
+not an epoch curve or a matched train/validation comparison. Training predictions
+are absent from the ZIP; these training AP numbers were not independently
+replayed. Decreasing training loss and this gap do not identify a cause.
+
+The audit replays all600 exported validation NPZs (200 per mode), checks common
+frame keys and byte-identical GT, and freshly matches each model's boxes.
+All class AP and macro AP at.3/.5/.7, in both ordering modes, reproduce exactly
+with NumPy1.26.4. This is recomputation with the existing metric implementation,
+not an independently implemented second evaluator. CoBEVT raw predictions are
+not included, so its external-reference number is not replayed in this audit.
+
+### What is failing in the learned predictions
+
+LiDAR-only at the original fixed decode settings, on all200 validation frames:
+
+| Class | GT instances | Predictions after radius filter | Correct matches atIoU.5 |
+|---|---:|---:|---:|
+| Vehicle | 12241 | 7872 | 1972 |
+| Heavy_Vehicle | 249 | 6557 | 0 |
+| 2Wheeler | 289 | 7793 | 13 |
+| Pedestrian | 2158 | 7907 | 22 |
+
+These are per-frame instances, not unique objects. Counts use the fixed.05
+confidence threshold; they are not new primary metrics. The median distance
+from a predicted Vehicle center to the nearest same-class GT center is1.47m
+for LiDAR,1.97m for fusion and4.14m for RGB. This one-way nearest-center
+diagnostic permits duplicate associations and is not detection recall.
+Many predictions are misplaced or unsupported, especially for minority classes.
+The archive alone cannot determine whether errors originate in features,
+projection, optimization or generalization.
+
+### Offline GT target/decode diagnostic — NOT a model result
+
+To check whether the box representation/decoder itself could explain the very
+low AP, insert exact validation-GT heat peaks and regression targets into the
+existing decoder. No model features or predictions are used in this check.
+Every original GT stays in evaluation, including cell collisions.
+
+| GT-assisted diagnostic | BEV mAP@.5 (%) | Vehicle recall (%) | Pedestrian recall (%) |
+|---|---:|---:|---:|
+| Original top40/class and NMS.2 | 88.9273 | 63.5406 | 92.1687 |
+| Relaxed cap500/class and NMS1 | 98.0422 | 100.0000 | 92.1687 |
+
+Both Heavy_Vehicle and2Wheeler recall are100% in these checks. There are14937
+radius-filtered validation GT,0 outside-grid target centers,169 same-class
+cell collisions; the pedestrian recall deficit matches those169 collisions.
+Original training target collisions were29/22763, a separate count.
+
+The default cap40/class is inadequate for an average61.2 Vehicle GT/frame,
+and NMS can also discard correct nearby boxes. The relaxed row jointly changes
+cap/NMS: it does not isolate their separate effects. Because all exact target
+peaks have equal score, the capped oracle selection follows deterministic cell
+order rather than an optimal ranking. These are attainable outputs for this
+GT-assisted construction, not a general AP upper bound or deployable results.
+
+The representation can decode accurate geometry when supplied correct targets;
+therefore neither coarse cells nor these decode limits alone explain0–3% model
+mAP. This does not validate native image/point alignment: input BEV feature
+caches and native payloads are absent from the archive. Do not change the saved
+model, reported protocol or primary metric based on this diagnostic.
+
+### Next gate before larger training
+
+Use a tiny fixed set of native TRAIN frames: inspect point/image/GT alignment
+and feature occupancy, then train and evaluate on those exact frames to test
+memorization. This is a training sanity check, not a validation improvement
+claim. Export per-class AP, heat/box losses, predictions and overlays. Only
+after that succeeds should larger training or architecture changes be assessed.
+No new job is prepared/submitted by this audit; all original models are retained.
+
+Reproduce the archive audit from the matching source version:
+
+```bash
+PYTHONPATH=src python scripts/audit_urbaning_bev_cpu.py \
+  /path/to/extracted/urbaning-bev-cpu \
+  --output /path/to/audit.json
+```
+
+It requires the existing pinned CPU torch/NumPy runtime; the audit does not
+install packages, train, read crossing3 or use a GPU.
+
 
 ## What this measures
 
@@ -128,7 +229,7 @@ resized384x640, frozen encoder and voxel lifting took~0.49s; a200x200 training
 step took~0.067s over10 updates. These numbers exclude Ares filesystem I/O,
 queue, native-data variation and full evaluation. They are not an Ares wall-
 time promise. The job prints measured feature extraction and per-model training
-rates/ETA. Actual native Ares performance and detection AP remain unmeasured.
+rates/ETA. Completed native Ares results and timing are recorded above.
 
 Atomic feature caches and a locked stable output directory allow resume.
 Checkpoints save model, optimizer, deterministic epoch/frame cursor, loss sums

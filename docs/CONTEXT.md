@@ -1,8 +1,43 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-05**. This document summarizes the latest decisions in the
+Updated: **2026-11-06**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## CPU standalone BEV run completed and audited (2026-11-06)
+
+Ares job21594614 produced a completed export: ZIP SHA256
+`698dd3e9619d10daf2c6c426650cda2eac51143604e888742bce2913d8c28152`,
+11,205,878bytes. Archive CRC and three recorded source hashes checked. Audit
+replayed all600 validation prediction files:200 per modality, identical frame
+keys/GT, all class AP and macro AP at.3/.5/.7 in both ordering modes reproduced
+exactly with NumPy1.26.4. CoBEVT raw predictions are not in this ZIP, so its
+reference AP is carried from the report rather than independently replayed here.
+
+Primary validation200 BEV mAP@.5: RGB0.5490%, LiDAR2.7615%, fusion1.5882%;
+separately trained CoBEVT reference21.5380%. Reported train40 diagnostic:
+RGB2.8140%, LiDAR16.8878%, fusion16.1355%. Training predictions/features are
+not exported, so train AP and native feature alignment were not independently
+verified. Train40 and validation200 are different samples, not an epoch curve.
+
+Offline GT target/decode checks on the same200 validation frames: original
+top40/NMS.2 gives88.9273% mAP; relaxing cap to500 and NMS to1 gives98.0422%.
+These are GT-assisted representation diagnostics, NEVER detector results or
+new tuned validation methods. Original vehicle recall63.5406%; relaxed100%.
+Pedestrian recall92.1687% in both, consistent with169 same-class cell collisions;
+all14937 GT retained. Decoder limits matter but do not explain model AP near0–3%.
+
+LiDAR validation TP@IoU.5: Vehicle1972/12241, Heavy0/249,2Wheeler13/289,
+Pedestrian22/2158. Many false predictions and center errors remain; a simple
+global box-size correction cannot be inferred as the fix. Lower train loss
+and a train/validation gap do not establish the cause. Input projection,
+feature informativeness, optimization and generalization remain open.
+
+No new training job submitted. Next diagnostic should use a tiny fixed set of
+native TRAIN frames, check point/image/GT alignment, and measure ability to
+memorize those exact frames before changing scale or claiming fusion gains.
+Preserve this8-epoch result; no crossing3 or validation parameter selection.
+See [CPU BEV results/audit](URBANING_BEV_CPU.md).
 
 ## CPU standalone BEV triplet prepared (2026-11-05)
 
