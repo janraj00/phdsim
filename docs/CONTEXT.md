@@ -4,6 +4,31 @@ Updated: **2026-11-06**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Native CoBEVT RGB preflight completed and reviewed (2026-11-06)
+
+Ares job21597293 completed9m13s, exit0. Supplied ZIP SHA256
+`8608d07b6862e3288718b0e4469ccb1e983439973c5a96e845cb2263048b9429`,
+6,121,251bytes; CRC passed. Exactly8 unique TRAIN keys,4 per existing recording,
+48 bound camera entries, zero validation frames and expected official model
+identity. Each row reports BEV[1,256,100,256] and exactly zero cls/reg head-replay
+error. Raw BEV/logit NPZs stay on Ares, so local review checks report consistency,
+not an independent tensor replay. Full scheduler553s, internal loop355.42s and
+sum of per-frame timers169.31s cover different portions; do not conflate them.
+
+Reviewed all8 six-camera mosaics, including detailed first-frame views at both
+sites. GT boxes visibly align with selected cars/pedestrian and point projections
+are plausible; no obvious gross axis reversal/rotation was seen. This is visual
+QA, not calibrated reprojection-error measurement, depth/occlusion validation or
+an exhaustive per-object check. Native Car1 camera offsets in this sample span
+-1..+44ms. Dark crossing1 and daylight crossing2 appearances are both present.
+
+The feature/head boundary now has a completed native check. RGB image-to-BEV
+encoder, adapter optimization and RGB accuracy evaluation remain unimplemented.
+Next: align RGB features to the original metric BEV grid, freeze CoBEVT, run a
+tiny native TRAIN memorization check plus LiDAR-only adapter control before
+expanding. No new job submitted and no fusion gain claimed.
+See [RGB preflight review](URBANING_COBEVT_RGB_ADAPTER.md).
+
 ## CoBEVT RGB adapter scaffold and native preflight ready (2026-11-06)
 
 Prepared `urbaning_cobevt_rgb_preflight.sbatch`:8CPU/24GiB/1h upper limit,

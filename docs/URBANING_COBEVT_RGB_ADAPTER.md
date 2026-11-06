@@ -1,7 +1,34 @@
 # Car1 RGB adaptation around the existing CoBEVT detector
 
-Status2026-11-06: **adapter scaffold and native preflight implemented, not run
-on Ares; RGB encoder/training and a fusion accuracy result are not available.**
+Status2026-11-06: **Ares preflight21597293 completed and visually reviewed.
+RGB encoder/training and a fusion accuracy result are not available.**
+
+## Completed native run
+
+Job21597293 completed in9m13s, exit0. Supplied ZIP SHA256
+`8608d07b6862e3288718b0e4469ccb1e983439973c5a96e845cb2263048b9429`,
+6,121,251bytes, valid CRC. Report/protocol consistently identify exactly8
+TRAIN frames,4 per original recording,48 camera entries, official pinned
+checkpoint, no training and0 validation frames. Every row reports final BEV
+shape[1,256,100,256] and cls/reg replay error0.0.
+
+The ZIP contains reports and QA mosaics; raw BEV/logit NPZs remain on Ares.
+Thus local validation checks the report/identities/keys and image readability,
+not independently recomputing native tensor equality. Scheduler553s, loop timer
+355.42s and per-frame sum169.31s cover different scopes.
+
+All8 mosaics were reviewed, with detailed first-frame inspection at each site.
+GT boxes enclose selected cars/pedestrian and Car1 point projections appear
+plausible. No obvious gross rotation/axis reversal was seen in those views.
+This is visual QA, not a quantitative calibration proof or exhaustive
+per-object test. Projected points can be occluded; GT projections need not
+mean an object is visible. Native Car1 image offsets span-1..+44ms here.
+The sample includes daylight crossing2 and darker crossing1 recordings.
+
+This completes the native feature/head and basic visual-alignment gate.
+It does not establish RGB feature quality, trainability or a detection gain.
+No next training job has been prepared/submitted by this review.
+
 
 The CPU standalone detector performed poorly even for LiDAR. Preserve those
 results and use the working official detector as the next engineering base.
@@ -103,4 +130,4 @@ wrong-grid/nonfinite rejection; original head replay and hook cleanup; rectangul
 metric axes; six-image projection QA; complete synthetic8-frame preflight export
 and ZIP integrity with mocked upstream I/O. These are implementation tests, not
 proof of native calibration or Ares compatibility. Python compilation and shell
-syntax pass. Native run/submission and training remain pending.
+syntax pass. The native preflight has now completed as recorded above; adapter training remains pending.
