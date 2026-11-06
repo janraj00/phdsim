@@ -4,7 +4,51 @@ Updated: **2026-11-06**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
-## Frozen-CoBEVT TRAIN8 adapter training prepared (2026-11-06)
+## Controlled Car1 adapter development test prepared (2026-11-06)
+
+User requested a strong controlled test after successful TRAIN8. Prepared
+`submit_urbaning_cobevt_rgb_controlled.sh`:400 TRAIN (existing0001 crossing2 and
+0017 crossing1),200 separate development-validation (0004 crossing2), seeds0/1/2,
+32 fixed final-only epochs. Primary comparison is aligned RGB adapter minus
+same-capacity/train-order/initialization LiDAR adapter. Include original LiDAR,
+a far-shuffled TRAIN-RGB control evaluated on ALIGNED validation RGB, and a
+separate shuffled-evaluation diagnostic using the aligned-trained adapter.
+No validation search, F1 switch, crossing3, RGB-only or acquisition experiment.
+
+One submitter creates inventory -> disposable two-TRAIN-frame native startup
+gate ->3 sequence cache tasks (%2) ->TRAIN-only normalizers ->3 seed workers
+(%2) ->independent raw-prediction AP replay/report. Reuse8 reviewed native BEVs,
+extract remaining592 once, keep original frozen heads/decoder/GT, fit original
+anchor loss. Stream at most2 decoded frames, checkpoint each100 updates and
+epoch; do not retain400 contexts in RAM. All3 models in a seed are frozen before
+that fitting worker loads validation. Engineering source/parity checks may read
+validation GT but never fit/select by it. Output has own logs/, final9 models,
+per-seed/class AP/both orders, paired deltas, raw predictions/GT and receipts.
+
+Nine controlled tests plus13 trainer/6 preflight tests pass (28). Native-size
+channels-last CPU updates with actual pinned PointPillarLoss also checked;
+no native600-frame cache/training result yet and no job submitted here. Existing
+private RGB bootstrap retains3 child-process checks and actual encoder startup
+coverage. User runs the command on Ares. See
+[controlled adapter protocol](URBANING_COBEVT_RGB_CONTROLLED.md).
+
+This validation is one previously inspected recording, not a blind test; the
+official frozen checkpoint may have seen development clips. Seed SD is
+optimization variability, not independent-recording uncertainty. All primary
+comparisons use this experiment's shared reloaded-feature baseline: per-key
+native voxel sampling can differ from historical full-run order. About30GB
+new cache;8CPU/24GiB per worker;115200 total updates across9 fixed32-epoch
+models. Scheduler ceilings are not ETAs; startup gate prevents expensive work
+after numerical/runtime failure. Preserve previous artifacts/worktrees.
+
+## Frozen-CoBEVT TRAIN8 adapter completed, user-reported (2026-11-06)
+
+User posted DONE from Ares21599501, output train8-002: same8 TRAIN fit/evaluation,
+original LiDAR30.7838%, LiDAR adapter29.0995%, aligned RGB adapter38.0268%,
+frozen RGB adapter with shuffled inputs22.8586% BEV mAP@.5. RGB-minus-trained-
+LiDAR is+8.9273pp on TRAIN only; not validation/generalization evidence.
+Archive has not been independently reviewed in this session. Frozen heads,
+zero validation/test and peer requests remain the declared TRAIN8 protocol.
 
 Ares21599373 FAILED before any optimization at the original absolute-only
 1e-6 native logit guard: maximum6.67572e-6 discrepancy, 32830/819200 elements.
@@ -21,9 +65,9 @@ torchvision path. Bootstrap now restarts BEFORE imports; verifies the private
 module location and prints versions/path/hash seed. Three child-process tests
 reproduce the old failure and check corrected startup across unset/nonzero/zero
 seeds. Actual local pinned torch/torchvision + SpatialEncoder/weights in a child
-process produced6x48x24x40 RGB maps. Corrected native launch pending; no training
-result or RGB improvement. Resume train8-002 (launcher-only change leaves
-training identities/settings unchanged); preserve train8-001.
+process produced6x48x24x40 RGB maps. Corrected launch21599501 subsequently
+completed as reported above. Preserve train8-001/train8-002; controlled test
+uses a fresh urbaning-cobevt-rgb-controlled-001 output.
 Thirteen trainer tests plus6 earlier adapter checks cover the corrected gate.
 
 User authorized preparation of actual adapter training after native preflight.
@@ -43,18 +87,18 @@ class macro=N/A explicit, no F1 replacement. Export raw predictions/GT, losses,
 models and plots; fixed within-recording RGB-shuffle diagnostic, no refitting.
 
 This is fitting/evaluation on the SAME8 TRAIN frames, no validation/test or
-crossing3, and not an RGB-only detector. No native training result exists.
+crossing3, and not an RGB-only detector. User-reported TRAIN result is above.
 Eight trainer checks plus6 earlier adapter checks passed; actual pinned upstream
 loss at native tensor size supports CPU backward/updates with frozen heads
 (~.29s/step locally on4threads, not an Ares ETA). Source/API review and471
-existing GT corner/center geometry checks also passed. Full native post-training
-decoder/training compatibility remains to be checked on Ares.
+existing GT corner/center geometry checks also passed. Native TRAIN8 completed;
+full-development fitting/validation remains pending.
 
 Worker8CPU/24GiB/2h upper limit; private torchvision target, existing weights,
 epoch checkpoints/resume and output lock. Output defaults to
 `phdsim/runs/urbaning-cobevt-rgb-adapter-train8-002` (corrected parity guard).
 See [TRAIN8 adapter protocol](URBANING_COBEVT_RGB_TRAIN.md).
-Jobs21599373/21599465 stopped before optimization; launcher fix not yet submitted.
+Jobs21599373/21599465 stopped before optimization;21599501 completed TRAIN8.
 
 ## Native CoBEVT RGB preflight completed and reviewed (2026-11-06)
 
