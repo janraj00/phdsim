@@ -18,7 +18,14 @@ mkdir -p "$OUT"
 echo "OUTPUT: $OUT"
 echo 'Independent frozen Cube R-CNN RGB3D + cached Car1 LiDAR; no adapter fitting.'
 echo 'Eight TRAIN frames, six cameras each; technical check, not held-out accuracy.'
-echo 'Private CPU extension build first. Four hours is a scheduler ceiling, not an ETA.'
+RUNTIME_ARGS=(--bootstrap "$OUT/runtime")
+if [ -n "${2:-}" ]; then
+  test -f "$2/ready.json"
+  RUNTIME_ARGS=(--reuse-runtime "$2")
+  echo "REUSE RUNTIME: $2 (no install or compilation)"
+fi
+export MPLCONFIGDIR="$OUT/matplotlib-cache"
+echo 'Four hours is a scheduler ceiling, not an ETA.'
 srun "$WORK/bin/urbaning-python.sh" -u scripts/urbaning_rgb3d_late.py \
-  --bootstrap "$OUT/runtime" --base "$BASE" --output "$OUT/run" \
+  "${RUNTIME_ARGS[@]}" --base "$BASE" --output "$OUT/run" \
   --cpu-threads "$SLURM_CPUS_PER_TASK"

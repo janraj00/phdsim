@@ -28,12 +28,22 @@ CLASS_MAP = {'car': 1, 'van': 1, 'truck': 2, 'bus': 2, 'trailer': 2,
 
 
 def camera_to_ego(extrinsic):
+    """Invert an orthogonal coordinate change, including native handedness.
+
+    The pinned UrbanIng converter contains an explicit y reflection R1. After
+    camera_fields' optical-axis correction, E=cTg*gTl*R3*R1 has determinant -1.
+    It is an isometry between bases of different handedness, not a damaged
+    rotation. Keep the exact transform; do not project it onto SO(3).
+    """
     e = np.asarray(extrinsic, dtype=float)
     if (e.shape != (4, 4) or not np.isfinite(e).all()
-            or not np.allclose(e[3], [0, 0, 0, 1])
-            or not np.allclose(e[:3, :3].T @ e[:3, :3], np.eye(3), atol=1e-5)
-            or not np.isclose(np.linalg.det(e[:3, :3]), 1, atol=1e-5)):
-        raise ValueError('Expected rigid Car1-to-optical-camera extrinsic')
+            or not np.allclose(e[3], [0, 0, 0, 1], rtol=0, atol=1e-5)):
+        raise ValueError('Expected finite homogeneous Car1-to-optical-camera matrix')
+    determinant = float(np.linalg.det(e[:3, :3]))
+    orthogonal_error = float(np.abs(e[:3, :3].T @ e[:3, :3] - np.eye(3)).max())
+    if orthogonal_error > 1e-5 or not np.isclose(abs(determinant), 1, rtol=0, atol=1e-5):
+        raise ValueError(f'Expected orthogonal camera change of basis: '
+                         f'det={determinant:.12g}, orthogonal_error={orthogonal_error:.12g}')
     return np.linalg.inv(e)
 
 
@@ -93,6 +103,8 @@ class CubeDetector:
     def __init__(self, model_dir, threads=8):
         import hashlib
         import torch
+        if torch.__version__ != '2.6.0+cpu' or np.__version__ != '1.26.4':
+            raise RuntimeError('Expected verified CPU torch2.6.0+cpu / NumPy1.26.4')
         from detectron2.config import get_cfg
         from detectron2.data import transforms as T
         from cubercnn.config import get_cfg_defaults

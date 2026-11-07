@@ -80,6 +80,31 @@ metrics retain official ROI threshold .01 and are not evaluated on that display
 subset. The BEV display window is not an evaluation range change. Retain native
 offsets offline, without motion compensation or online availability claims.
 
+### Native handedness failure and correction
+
+Ares job21649159 completed private runtime/model verification but failed after
+the first camera prediction in `camera_to_ego`. The initial guard incorrectly
+required determinant +1. The pinned converter explicitly uses
+R1=diag(1,-1,1,1); its camera_fields-corrected transform is
+E=cTg*gTl*R3*R1. Proper native camera/LiDAR rotations therefore give an
+orthogonal E with determinant -1, a legitimate change between handed bases.
+Do not flip another axis, change calibration, or project E to SO(3).
+
+The correction permits orthogonal determinants +/-1 while retaining finite,
+homogeneous-row, unit-scale and no-shear checks with tolerance1e-5. Error
+messages expose determinant/orthogonality residual rather than a generic
+failure. All48 calibrations are now checked and exported before model creation;
+per-camera determinants are retained. BEV figure axes use neutral converted
+Car1 x/y labels instead of an unverified left/right convention.
+
+Seven focused tests pass: the exact pinned-converter basis formula and reflected
+point/cuboid roundtrips; invalid scale/shear rejection; full synthetic48-camera
+export with determinant -1; early calibration rejection before model creation;
+read-only runtime reuse with no build calls. An additional check transformed all
+49 cached official-model demo cuboids through a reflected basis and reproduced
+their original optical centers. The native Ares calibration values have not
+been independently read here; calibration-check.json will preserve them on retry.
+
 ## Run on Ares
 
 Local checks passed: four focused geometry/NMS/export tests including the full
@@ -110,6 +135,23 @@ The sibling `runtime` holds external source/build files, dependencies and
 weights, excluded from the result ZIP and Git. Use a fresh output if interrupted;
 this initial small runner deliberately does not overwrite or silently resume
 an incompletely built runtime or a previous scientific output.
+
+For a fresh scientific output using the completed runtime from21649159:
+
+```bash
+WORK=/net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work
+RUNTIME="$WORK/phdsim/runs/urbaning-rgb3d-late-21649159/runtime"
+test -f "$RUNTIME/ready.json"
+sbatch -A plgkgacq-cpu scripts/slurm/urbaning_rgb3d_late.sbatch "" "$RUNTIME"
+```
+
+This verifies the completed runtime's pinned revisions and official model
+checksums, then activates its private dependencies via an explicit child-process
+environment. No pip installation/compilation, new model download or writes into
+the source runtime are performed. Python bytecode writes are disabled on reuse
+and plotting caches are placed in the new output. Preserve the failed output,
+including its first raw camera prediction. The empty first argument selects the
+default fresh job-ID output. No long historical inference or training is repeated.
 
 Review projection/metric depth and category coverage first. Only after that gate
 should a fixed development comparison be prepared, then an independent test.

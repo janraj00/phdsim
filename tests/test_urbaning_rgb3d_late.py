@@ -27,6 +27,39 @@ def box(x=10, y=0, yaw=0):
 
 
 class GeometryAndFusion(unittest.TestCase):
+    def test_pinned_converter_reflection_is_not_an_invalid_rotation(self):
+        # Exact basis formula from pinned upstream create_opencood_format.py,
+        # not a hand-built det+1 fixture. Native optical correction cancels
+        # R1*inv(R2); the remaining rightmost R1 changes handedness.
+        from phdsim.experiments.urbaning_rgb_pilot import R2_R1
+        r1=np.diag([1.,-1,1,1])
+        r2=np.array([[0,-1,0,0],[0,0,-1,0],[1,0,0,0],[0,0,0,1.]])
+        r3=np.array([[0,-1,0,0],[1,0,0,0],[0,0,1,0],[0,0,0,1.]])
+        c=np.eye(4);c[:3,3]=[-1,2,-3]
+        l=np.eye(4);l[:3,3]=[7,-3,2]
+        converted=r1@np.linalg.inv(r2)@c@l@r3@r1
+        optical=R2_R1@converted
+        np.testing.assert_allclose(optical,c@l@r3@r1)
+        self.assertAlmostEqual(np.linalg.det(optical[:3,:3]),-1)
+        points=np.array([[10.,2.,1.],[8.,-4.,-1.]])
+        observed=points@optical[:3,:3].T+optical[:3,3]
+        inv=camera_to_ego(optical)
+        np.testing.assert_allclose(observed@inv[:3,:3].T+inv[:3,3],points)
+        # Encode an upright physical cuboid in this reflected camera basis;
+        # its inverse must recover the known center/dimensions/BEV overlap.
+        axes=R_EGO.copy();axes[:,2]*=-1  # left-handed ego -> proper camera pose
+        pose=optical[:3,:3]@axes
+        self.assertAlmostEqual(np.linalg.det(pose),1)
+        bb=upright_boxes(observed[:1],[[2.,2.,4.]],pose[None],optical)[0]
+        np.testing.assert_allclose(bb.mean(axis=0),points[0])
+        np.testing.assert_allclose(np.ptp(bb,axis=0),[4,2,2])
+        self.assertAlmostEqual(polygon_iou(_polygon(bb),_polygon(box(10,2)[0])),1)
+        # Keep all structural checks: a scale/shear is NOT a handedness change.
+        bad=optical.copy();bad[0,:3]*=1.001
+        with self.assertRaisesRegex(ValueError,'orthogonal_error'):camera_to_ego(bad)
+        bad=optical.copy();bad[:3,3]=np.nan
+        with self.assertRaises(ValueError):camera_to_ego(bad)
+
     def test_camera_axes_dimensions_and_yaw(self):
         b=box()[0]
         np.testing.assert_allclose(b.mean(axis=0),[10,0,0],atol=1e-12)
@@ -90,9 +123,13 @@ class NativePilotPlumbing(unittest.TestCase):
                             'scores':np.array([.8]),'classes':np.array([0]),'boxes2d':np.array([[1,1,10,10]])}
             with patch.object(m,'CubeDetector',FrozenRGB), \
                  patch.object(m,'read_inputs',return_value=({'train':records,'validation':[]},{'train':{'frames':8}})), \
-                 patch.object(m,'camera_fields',return_value=[(E,np.array([[30.,0,16],[0,30,16],[0,0,1]]))]*6):
+                 patch.object(m,'camera_fields',return_value=[(E@np.diag([1.,-1,1,1]),
+                     np.array([[30.,0,16],[0,30,16],[0,0,1]]))]*6):
                 m.run(root,root,output,1)
             self.assertEqual(len(FrozenRGB.calls),48)
+            checks=json.loads((output/'calibration-check.json').read_text())
+            self.assertTrue(checks['passed']);self.assertEqual(len(checks['cameras']),48)
+            self.assertTrue(all(abs(c['determinant']+1)<1e-12 for c in checks['cameras']))
             report=json.loads((output/'report.json').read_text())
             rgb=report['metrics']['rgb']['global_confidence_sort']
             self.assertGreater(rgb['classes']['Vehicle']['ap']['0.5'],.99)
@@ -102,6 +139,44 @@ class NativePilotPlumbing(unittest.TestCase):
                 self.assertEqual(len([n for n in z.namelist() if n.startswith('qa/') and n.endswith('.jpg')]),48)
                 self.assertEqual(len([n for n in z.namelist() if n.endswith('_bev.png')]),8)
             with self.assertRaises(FileExistsError):m.run(root,root,output,1)
+
+    def test_bad_calibration_is_reported_before_model_creation(self):
+        from phdsim.experiments import urbaning_rgb3d_late as m
+        bad=E.copy();bad[0,0]=.1
+        records=[{'key':str(i),'sequence':'train','yaml':'not_read'} for i in range(8)]
+        with tempfile.TemporaryDirectory() as td, \
+             patch.object(m,'read_inputs',return_value=({'train':records,'validation':[]},{})), \
+             patch.object(m,'camera_fields',return_value=[(bad,np.eye(3))]*6), \
+             patch.object(m,'CubeDetector') as detector:
+            out=Path(td)/'new'
+            with self.assertRaisesRegex(ValueError,'before model inference'):m.run(out,out,out,1)
+            detector.assert_not_called()
+            report=json.loads((out/'calibration-check.json').read_text())
+            self.assertFalse(report['passed']);self.assertIn('error',report['cameras'][0])
+
+    def test_completed_runtime_reuse_is_read_only_and_does_not_build(self):
+        import os
+        from phdsim.perception.urbaning.rgb3d_late import OMNI_COMMIT,D2_COMMIT,P3D_COMMIT
+        script=Path(__file__).resolve().parents[1]/'scripts/urbaning_rgb3d_late.py'
+        spec=importlib.util.spec_from_file_location('rgb3d_bootstrap',script)
+        module=importlib.util.module_from_spec(spec)
+        with patch.dict(os.environ,{'PYTHONHASHSEED':'0'}):spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);(root/'dependencies').mkdir();(root/'sources/omni3d').mkdir(parents=True)
+            (root/'model').mkdir();asset={'model.pth':module.hashlib.sha256(b'fixed model').hexdigest()}
+            (root/'model/model.pth').write_bytes(b'fixed model')
+            (root/'ready.json').write_text(json.dumps({'omni3d':OMNI_COMMIT,'detectron2':D2_COMMIT,
+                                                      'pytorch3d':P3D_COMMIT,'assets':asset}))
+            before={str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}
+            with patch('phdsim.perception.urbaning.rgb3d_late.ASSETS',asset), \
+                 patch.object(module.subprocess,'run',side_effect=AssertionError('No builds allowed')):
+                model,env=module.reuse(root)
+                self.assertEqual(model,root/'model')
+                self.assertIn(str(root/'dependencies'),env['PYTHONPATH'])
+                after={str(p.relative_to(root)):p.read_bytes() for p in root.rglob('*') if p.is_file()}
+                self.assertEqual(before,after)
+                (root/'model/model.pth').write_bytes(b'changed model')
+                with self.assertRaisesRegex(ValueError,'changed official model'):module.reuse(root)
 
 
 if __name__=='__main__':unittest.main()

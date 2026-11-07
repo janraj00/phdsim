@@ -13,7 +13,7 @@ import numpy as np
 
 from phdsim.experiments.urbaning_rgb_pilot import read_inputs, camera_fields, sha, write_json
 from phdsim.perception.urbaning.rgb3d_late import (
-    CubeDetector, CLASS_MAP, ASSETS, upright_boxes, classwise_nms, late_fuse)
+    CubeDetector, CLASS_MAP, ASSETS, camera_to_ego, upright_boxes, classwise_nms, late_fuse)
 from phdsim.evaluation.urbaning_cached import (
     frame_statistics, aggregate_statistics, summarize_cached)
 
@@ -60,7 +60,7 @@ def draw_bev(variants, truth, key, path):
             if s[0]>=.25:ax.add_patch(Polygon(b[:4,:2],fill=False,edgecolor=color,linewidth=.8))
         ax.scatter([0],[0],marker='^',color='black',s=45)
         ax.set(xlim=(-105,105),ylim=(-45,45),aspect='equal',title=name,
-               xlabel='Car1 x (m), forward',ylabel='Car1 y (m), left')
+               xlabel='Car1 converted x (m)',ylabel='Car1 converted y (m)')
         ax.grid(alpha=.2)
     fig.suptitle(key+'\nGreen: all offline GT; colored: predictions score>=.25; black: Car1. Display window only.')
     fig.savefig(path,dpi=140);plt.close(fig)
@@ -76,6 +76,23 @@ def run(base, model_dir, output, threads):
     train = records['train']
     if len(train) != 8 or records['validation'] or any('crossing3' in r['sequence'] for r in train):
         raise ValueError('Exactly eight TRAIN frames and no validation/crossing3 required')
+    calibrations = {}; checks = []
+    for record in train:
+        calibrations[record['key']] = camera_fields(record['yaml'])
+        for i,(e,k) in enumerate(calibrations[record['key']]):
+            row = {'key':record['key'], 'camera':i, 'optical_from_car1':e.tolist(),
+                   'K':k.tolist(), 'determinant':float(np.linalg.det(e[:3,:3])),
+                   'orthogonal_error':float(np.abs(e[:3,:3].T@e[:3,:3]-np.eye(3)).max())}
+            try:
+                camera_to_ego(e)
+            except ValueError as exc:
+                row['error']=str(exc);checks.append(row)
+                write_json(output/'calibration-check.json',{'passed':False,'cameras':checks})
+                raise ValueError(f'Camera calibration failed before model inference: '
+                                 f'{record["key"]} camera={i}: {exc}') from exc
+            checks.append(row)
+    write_json(output/'calibration-check.json',{'passed':True,'cameras':checks})
+    print('CALIBRATION PASSED 48 cameras; exact basis preserved, determinant +/-1 allowed',flush=True)
     protocol = {'schema': SCHEMA, 'purpose': __doc__, 'frames': provenance,
                 'model': ASSETS, 'class_map': CLASS_MAP, 'cpu_threads': threads,
                 'bev_nms_iou': .2, 'raw_rgb_score_threshold': 'official ROI_HEADS config, .01',
@@ -93,7 +110,7 @@ def run(base, model_dir, output, threads):
     for index, record in enumerate(train):
         key = record['key']; name = key.replace(':','_')
         rgb_boxes = []; rgb_scores = []; cameras = []
-        for i, (e,k) in enumerate(camera_fields(record['yaml'])):
+        for i, (e,k) in enumerate(calibrations[key]):
             path = Path(record['yaml']).with_name(Path(record['yaml']).stem + f'_camera{i}.png')
             raw = path.read_bytes()
             image = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
@@ -115,6 +132,7 @@ def run(base, model_dir, output, threads):
                         record['gt_boxes'], e, output/'qa'/f'{name}_camera{i}.jpg')
             cameras.append({'camera':i, 'path':str(path), 'image_sha256':sha(raw),
                             'optical_from_car1':e.tolist(), 'K':k.tolist(),
+                            'basis_determinant':float(np.linalg.det(e[:3,:3])),
                             'native_association':record['native_association'],
                             'prediction_sha256':sha(raw_path.read_bytes()),
                             'detections_all_categories':len(categories), 'detections_mapped':len(selected),

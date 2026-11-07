@@ -6,6 +6,19 @@ project conversation. Earlier explanations in the
 
 ## Independent RGB3D late-fusion pilot prepared (2026-11-07)
 
+Ares21649159 verified the private Cube R-CNN CPU model, then failed after the
+first RGB prediction at the extrinsic determinant guard. Code review of pinned
+upstream d5766e7 shows corrected E=cTg*gTl*R3*R1, with an explicit handedness
+reflection. Initial det+1-only validation was wrong for this basis. Corrected
+to orthogonal det+/-1 without changing any calibration, scaling, thresholds or
+class mapping; reject scale/shear and export all48 calibration diagnostics
+before model creation. Native matrix values remain to be read on retry.
+Seven focused tests plus a49-official-cuboid reflected-center roundtrip pass.
+Added read-only completed-runtime reuse for21649159: preserve failed output,
+create new job-ID output, no compilation/install/download or source runtime
+writes. Plot caches stay in new output, Python bytecode writes disabled on
+reuse. Native corrected pilot has not run.
+
 User questioned the feature adapter and selected independent RGB detection plus
 late fusion. Prepared a separate frozen official Cube R-CNN DLA34/Omni3D CPU
 pilot:8 fixed TRAIN frames, six Car1 cameras each; no fitting, validation,

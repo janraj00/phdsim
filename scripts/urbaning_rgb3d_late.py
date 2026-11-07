@@ -91,19 +91,44 @@ def prepare(directory):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--bootstrap',type=Path)
+    p.add_argument('--reuse-runtime',type=Path)
     p.add_argument('--base',type=Path,required=True)
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--model-dir',type=Path)
     p.add_argument('--cpu-threads',type=int,default=8)
     a=p.parse_args()
-    if a.bootstrap:
-        model,env=prepare(a.bootstrap.resolve())
+    if a.cpu_threads < 1:p.error('Positive CPU thread count required')
+    if a.bootstrap and a.reuse_runtime:p.error('Select bootstrap OR reuse-runtime')
+    if a.bootstrap or a.reuse_runtime:
+        if a.bootstrap:model,env=prepare(a.bootstrap.resolve())
+        else:model,env=reuse(a.reuse_runtime.resolve())
+        env['MPLCONFIGDIR']=str(a.output.resolve().parent/'matplotlib-cache')
         args=[sys.executable,'-u',str(Path(__file__).resolve()),'--base',str(a.base),
               '--output',str(a.output),'--model-dir',str(model),'--cpu-threads',str(a.cpu_threads)]
         os.execve(sys.executable,args,env)
-    if not a.model_dir:p.error('--model-dir or --bootstrap is required')
+    if not a.model_dir:p.error('--model-dir, --bootstrap or --reuse-runtime is required')
     from phdsim.experiments.urbaning_rgb3d_late import run
     run(a.base.resolve(),a.model_dir.resolve(),a.output.resolve(),a.cpu_threads)
+
+
+def reuse(directory):
+    """Read-only activation of a completed runtime: no installs/builds/writes."""
+    from phdsim.perception.urbaning.rgb3d_late import OMNI_COMMIT, D2_COMMIT, P3D_COMMIT, ASSETS
+    marker=json.loads((directory/'ready.json').read_text())
+    expected={'omni3d':OMNI_COMMIT,'detectron2':D2_COMMIT,'pytorch3d':P3D_COMMIT,'assets':ASSETS}
+    if any(marker.get(k)!=v for k,v in expected.items()):
+        raise ValueError('Completed private runtime revision/assets differ')
+    deps=directory/'dependencies'; source=directory/'sources'/'omni3d'; model=directory/'model'
+    if not deps.is_dir() or not source.is_dir():raise FileNotFoundError('Incomplete private runtime')
+    for name,expected_sha in ASSETS.items():
+        if hashlib.sha256((model/name).read_bytes()).hexdigest()!=expected_sha:
+            raise ValueError('Cannot reuse changed official model asset: '+name)
+    env=dict(os.environ)
+    env['PYTHONPATH']=os.pathsep.join([str(source),str(deps),str(ROOT/'src'),env.get('PYTHONPATH','')])
+    env['PYTHONDONTWRITEBYTECODE']='1'
+    # Put plotting caches in the NEW output, not in the reused source runtime.
+    print('REUSE VERIFIED PRIVATE CPU RUNTIME (no install/build):',directory,flush=True)
+    return model,env
 
 
 if __name__=='__main__':main()
