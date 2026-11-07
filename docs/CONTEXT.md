@@ -4,6 +4,36 @@ Updated: **2026-11-07**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## RGB3D baseline reviewed; paired outdoor checkpoint check prepared (2026-11-07)
+
+User asked to improve RGB itself after the weak zero-shot result. Completed
+Ares21653482 ZIP has been locally CRC/hash checked and all4 variants' class AP
+at.3/.5/.7 independently replayed in both orders. All48 raw-camera conversions,
+six-camera NMS and late fusion reproduce stored arrays exactly. Primary mAP
+original LiDAR/NMS control29.1491%, RGB4.0973%, fusion29.2281%. Fusion gains5
+GT appearances but loses4 old matches through suppression of original LiDAR
+boxes. Representative RGB/BEV images reviewed.48 calibration determinants=-1
+within~1.6e-15. This supersedes the earlier pending-native notes below.
+
+Offline GT-dependent geometry-factor controls (194 projected-image-matched
+camera-object observations, all original GT retained) indicate depth/position
+is the main bottleneck: replacing only optical depth gives15.2056% versus
+4.0973% unchanged; dimensions4.6712%, yaw4.0973%, BEV center19.7628%.
+These are error-isolation diagnostics, NEVER deployable/trained gains or
+guaranteed achievable performance. No new fitting has taken place.
+
+Prepared paired evaluation of the authors' official outdoor-only DLA34 weights
+against the frozen general Omni3D reference21653482. New config/metadata/model
+hashes checked; private runtime21649159 reused read-only without installation.
+Require identical8 keys, GT/LiDAR arrays and48 image/calibration/time bindings;
+replay all old AP before inference. Same class mapping, thresholds and fusion
+rule; no validation/crossing3, fitting or score calibration. Eight focused tests,
+real official outdoor CPU forward and empty-image path passed. Native outdoor
+UrbanIng results remain pending. See [outdoor comparison](URBANING_RGB3D_OUTDOOR.md).
+
+Further native-depth-head adaptation on400 TRAIN/200 development-validation is
+a proposed following step, not implemented or run by this small checkpoint test.
+
 ## Independent RGB3D late-fusion pilot prepared (2026-11-07)
 
 Ares21649159 verified the private Cube R-CNN CPU model, then failed after the

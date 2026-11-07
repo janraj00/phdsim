@@ -9,7 +9,7 @@ import zipfile
 import numpy as np
 
 from phdsim.perception.urbaning.rgb3d_late import (
-    camera_to_ego, upright_boxes, classwise_nms, late_fuse, CLASS_MAP)
+    camera_to_ego, upright_boxes, classwise_nms, late_fuse, CLASS_MAP,model_assets,ASSETS)
 from phdsim.evaluation.urbaning_cached import _polygon, polygon_iou
 
 
@@ -115,7 +115,8 @@ class NativePilotPlumbing(unittest.TestCase):
             class FrozenRGB:
                 categories=['car']
                 calls=[]
-                def __init__(self,*args):pass
+                variants=[]
+                def __init__(self,*args,**kwargs):self.variants.append(kwargs.get('variant','omni3d'))
                 def predict(self,image,intrinsic):
                     self.calls.append((image.shape,np.array(intrinsic)))
                     return {'centers':np.array([[0.,0.,30.]]),'dimensions':np.array([[2.,2.,4.]]),
@@ -139,6 +140,37 @@ class NativePilotPlumbing(unittest.TestCase):
                 self.assertEqual(len([n for n in z.namelist() if n.startswith('qa/') and n.endswith('.jpg')]),48)
                 self.assertEqual(len([n for n in z.namelist() if n.endswith('_bev.png')]),8)
             with self.assertRaises(FileExistsError):m.run(root,root,output,1)
+            # Official outdoor comparison must reuse the identical observations,
+            # preserve the source archive, and independently replay old metrics.
+            archive=output/'urbaning-rgb3d-late-train8.zip'
+            raw=archive.read_bytes()
+            from phdsim.experiments.urbaning_rgb_pilot import sha
+            args=(root,root,root/'outdoor',1,'outdoor',archive)
+            with patch.object(m,'CubeDetector',FrozenRGB), \
+                 patch.object(m,'read_inputs',return_value=({'train':records,'validation':[]},{'train':{'frames':8}})), \
+                 patch.object(m,'camera_fields',return_value=[(E@np.diag([1.,-1,1,1]),
+                     np.array([[30.,0,16],[0,30,16],[0,0,1]]))]*6), \
+                 patch.object(m,'REFERENCE_SHA',sha(raw)):
+                m.run(*args)
+                new=json.loads((root/'outdoor/report.json').read_text())
+                with zipfile.ZipFile(root/'outdoor/urbaning-rgb3d-outdoor-train8.zip') as zz:
+                    self.assertIsNone(zz.testzip());self.assertIn('paired-reference-report.json',zz.namelist())
+                self.assertEqual(new['metrics'],report['metrics'])
+                self.assertTrue(new['paired_reference']['all_bindings_verified'])
+                self.assertEqual(archive.read_bytes(),raw)
+                self.assertEqual(FrozenRGB.variants,['omni3d','outdoor'])
+                (root/'000000_camera0.png').write_bytes(b'changed payload')
+                with self.assertRaisesRegex(ValueError,'camera image/calibration/time'):
+                    m.run(root,root,root/'changed',1,'outdoor',archive)
+
+    def test_official_variants_and_outdoor_reference_required(self):
+        from phdsim.experiments import urbaning_rgb3d_late as m
+        self.assertEqual(model_assets('omni3d'),ASSETS)
+        self.assertNotEqual(model_assets('outdoor'),ASSETS)
+        with self.assertRaises(ValueError):model_assets('unreviewed checkpoint')
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaisesRegex(ValueError,'requires the original paired'):
+                m.run(Path(d),Path(d),Path(d)/'new',1,'outdoor')
 
     def test_bad_calibration_is_reported_before_model_creation(self):
         from phdsim.experiments import urbaning_rgb3d_late as m

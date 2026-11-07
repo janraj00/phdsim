@@ -4,6 +4,7 @@ An engineering pilot, not a modality ranking, validation gain or new training.
 """
 import argparse
 from collections import Counter
+import io
 import json
 from pathlib import Path
 import time
@@ -13,11 +14,12 @@ import numpy as np
 
 from phdsim.experiments.urbaning_rgb_pilot import read_inputs, camera_fields, sha, write_json
 from phdsim.perception.urbaning.rgb3d_late import (
-    CubeDetector, CLASS_MAP, ASSETS, camera_to_ego, upright_boxes, classwise_nms, late_fuse)
+    CubeDetector, CLASS_MAP, ASSETS, model_assets, camera_to_ego, upright_boxes, classwise_nms, late_fuse)
 from phdsim.evaluation.urbaning_cached import (
     frame_statistics, aggregate_statistics, summarize_cached)
 
 SCHEMA = 'phdsim-urbaning-rgb3d-late-train8-v1'
+REFERENCE_SHA = '9166540676ab7629f9426bfc1a45f968f5da9f2162507389885e461ebc64d4ad'
 EDGES = [(0,1),(1,2),(2,3),(3,0),(4,5),(5,6),(6,7),(7,4),
          (0,4),(1,5),(2,6),(3,7)]
 
@@ -66,8 +68,48 @@ def draw_bev(variants, truth, key, path):
     fig.savefig(path,dpi=140);plt.close(fig)
 
 
-def run(base, model_dir, output, threads):
+def verify_reference(records,calibrations,archive):
+    """Bind paired checkpoint comparison to the inspected native TRAIN8 export."""
+    raw=Path(archive).read_bytes()
+    if sha(raw)!=REFERENCE_SHA:raise ValueError('Original TRAIN8 reference archive hash differs')
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        if z.testzip() is not None:raise ValueError('Corrupt reference archive')
+        report=json.loads(z.read('report.json'))
+        old={r['key']:r for r in report['frames']}
+        if set(old)!={r['key'] for r in records}:raise ValueError('Different reference frame keys')
+        stats={v:[] for v in report['metrics']}
+        for record in records:
+            key=record['key'];row=old[key];name=key.replace(':','_')
+            payload=z.read('frames/'+name+'.npz')
+            if sha(payload)!=row['payload_sha256']:raise ValueError('Changed reference prediction payload')
+            with np.load(io.BytesIO(payload),allow_pickle=False) as d:
+                for a,b in [('boxes','original_lidar_boxes'),('scores','original_lidar_scores'),
+                            ('gt_boxes','gt_boxes'),('gt_labels','gt_labels')]:
+                    if not np.array_equal(record[a],d[b]):raise ValueError('Reference baseline/GT differs: '+a)
+                for v in stats:
+                    stats[v].append(frame_statistics(d[v+'_boxes'],d[v+'_scores'],d['gt_boxes'],d['gt_labels']))
+            if len(row['cameras'])!=6:raise ValueError('Reference needs all six cameras')
+            for i,(e,k) in enumerate(calibrations[key]):
+                c=row['cameras'][i]
+                image=Path(record['yaml']).with_name(Path(record['yaml']).stem+f'_camera{i}.png')
+                if (c['camera']!=i or sha(image.read_bytes())!=c['image_sha256']
+                        or not np.array_equal(e,c['optical_from_car1']) or not np.array_equal(k,c['K'])
+                        or c['native_association']!=record['native_association']):
+                    raise ValueError('Reference camera image/calibration/time binding differs')
+        for v,ss in stats.items():
+            total=aggregate_statistics(ss)
+            for order in [True,False]:
+                name='global_confidence_sort' if order else 'upstream_default_frame_order'
+                if summarize_cached(total,order)!=report['metrics'][v][name]:
+                    raise ValueError('Reference AP does not replay exactly')
+    return report
+
+
+def run(base, model_dir, output, threads, variant='omni3d', reference_archive=None):
     import cv2
+    assets=model_assets(variant)
+    if variant=='outdoor' and reference_archive is None:
+        raise ValueError('Outdoor comparison requires the original paired TRAIN8 archive')
     if output.exists():
         raise FileExistsError('Preserve the previous pilot; select a fresh output')
     output.mkdir(parents=True)
@@ -93,8 +135,11 @@ def run(base, model_dir, output, threads):
             checks.append(row)
     write_json(output/'calibration-check.json',{'passed':True,'cameras':checks})
     print('CALIBRATION PASSED 48 cameras; exact basis preserved, determinant +/-1 allowed',flush=True)
+    reference=verify_reference(train,calibrations,reference_archive) if reference_archive else None
+    if reference:print('PAIRED REFERENCE PASSED: same8 keys/GT/LiDAR and48 image/calibration/time bindings; both AP modes reproduced',flush=True)
     protocol = {'schema': SCHEMA, 'purpose': __doc__, 'frames': provenance,
-                'model': ASSETS, 'class_map': CLASS_MAP, 'cpu_threads': threads,
+                'model': assets, 'model_variant':variant,'class_map': CLASS_MAP, 'cpu_threads': threads,
+                'reference_archive_sha256':REFERENCE_SHA if reference else None,
                 'bev_nms_iou': .2, 'raw_rgb_score_threshold': 'official ROI_HEADS config, .01',
                 'training': False, 'peer_requests': 0,
                 'geometry': 'native camera 3D center/dimensions; length-axis yaw upright approximation',
@@ -103,7 +148,7 @@ def run(base, model_dir, output, threads):
                 'source_code': {str(p.relative_to(Path(__file__).parents[3])):sha(p.read_bytes())
                                 for p in [Path(__file__), Path(__file__).parents[1]/'perception/urbaning/rgb3d_late.py']}}
     write_json(output/'protocol.json', protocol)
-    detector = CubeDetector(model_dir, threads)
+    detector = CubeDetector(model_dir, threads,variant=variant)
     names = ('original_lidar', 'lidar_nms_control', 'rgb', 'lidar_rgb_late')
     statistics = {k: [] for k in names}; rows = []; counts = Counter()
     started = time.monotonic()
@@ -113,6 +158,9 @@ def run(base, model_dir, output, threads):
         for i, (e,k) in enumerate(calibrations[key]):
             path = Path(record['yaml']).with_name(Path(record['yaml']).stem + f'_camera{i}.png')
             raw = path.read_bytes()
+            if reference:
+                old=next(f for f in reference['frames'] if f['key']==key)['cameras'][i]
+                if sha(raw)!=old['image_sha256']:raise ValueError('Image changed after paired reference check')
             image = cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
             if image is None: raise ValueError('Unreadable camera image')
             tick = time.monotonic()
@@ -159,7 +207,7 @@ def run(base, model_dir, output, threads):
     metrics = {v:{'global_confidence_sort':summarize_cached(aggregate_statistics(stats),True),
                   'upstream_default_frame_order':summarize_cached(aggregate_statistics(stats),False)}
                for v,stats in statistics.items()}
-    report = {'schema':SCHEMA, 'status':'completed engineering TRAIN8 pilot',
+    report = {'schema':SCHEMA, 'status':'completed engineering TRAIN8 pilot','model_variant':variant,
               'frames':rows, 'metrics':metrics, 'rgb_categories_raw':dict(counts),
               'seconds':time.monotonic()-started, 'limitations':[
                   'Eight TRAIN frames, no fitting and no independent test or modality ranking',
@@ -170,8 +218,13 @@ def run(base, model_dir, output, threads):
                   'BEV uses predicted length-axis yaw; RGB roll/pitch are discarded without GT adjustment',
                   'Native camera association offsets retained offline; no motion compensation or latency claims',
                   'Review raw 3D projection and depth before interpreting any mAP change']}
+    if reference:
+        report['paired_reference']={'sha256':REFERENCE_SHA,'all_bindings_verified':True,
+                                   'metrics':reference['metrics']}
+        write_json(output/'paired-reference-report.json',reference)
     write_json(output/'report.json',report)
-    archive = output/'urbaning-rgb3d-late-train8.zip'
+    archive = output/('urbaning-rgb3d-outdoor-train8.zip' if variant=='outdoor'
+                     else 'urbaning-rgb3d-late-train8.zip')
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
         for p in sorted(output.rglob('*')):
             if p.is_file() and p != archive and p.name != 'ap-export.zip':
@@ -180,6 +233,13 @@ def run(base, model_dir, output, threads):
     for v in names:
         m = metrics[v]['global_confidence_sort']['macro_ap']['0.5']
         print(v, None if m is None else 100*m, flush=True)
+    if reference:
+        print('PAIRED official checkpoint comparison; same TRAIN8, not an independent test',flush=True)
+        for v in ('rgb','lidar_rgb_late'):
+            old=reference['metrics'][v]['global_confidence_sort']['macro_ap']['0.5']
+            new=metrics[v]['global_confidence_sort']['macro_ap']['0.5']
+            print(v,'omni3d=',None if old is None else old*100,'outdoor=',None if new is None else new*100,
+                  'delta_pp=',None if old is None or new is None else 100*(new-old),flush=True)
     print('DONE:', archive,flush=True)
 
 
