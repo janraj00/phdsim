@@ -20,6 +20,17 @@ ASSETS = {
     'category_meta.json': 'b4c4a697313decb1d2228fa9db516738861031024532e0c2a968a183b0d21ed9',
     'cubercnn_DLA34_FPN.pth': 'fb60a7ae8e9b54bfac3bb46082856e5f4a06e05f3bd4f58295900ce05e5171df',
 }
+OUTDOOR_ASSETS = {
+    'cubercnn_DLA34_FPN.yaml': 'feaad164338cc8fd083bf8aa995d551e762cf9d49b580e68ae335b40ebd912b5',
+    'category_meta.json': '1c62db8f91b0b501fea8b44f55b28905c69b1706d7e4dd9fb1429e61c989b758',
+    'cubercnn_DLA34_FPN.pth': '9dfc68c564a31e5e0e893b913574863af05ee0200b58f91173bbc088f31e8e2d',
+}
+
+
+def model_assets(variant):
+    if variant == 'omni3d': return ASSETS
+    if variant == 'outdoor': return OUTDOOR_ASSETS
+    raise ValueError('Unknown official Cube R-CNN variant: '+str(variant))
 # UrbanIng's classes aggregate finer labels. EScooter/OtherVehicle have no exact
 # checkpoint counterpart. All original GT remains in evaluation. A bare bicycle
 # is not silently substituted for UrbanIng's Cyclist (rider + bicycle).
@@ -100,7 +111,7 @@ def late_fuse(lidar_boxes, lidar_scores, rgb_boxes, rgb_scores, threshold=.2):
 
 class CubeDetector:
     """Unchanged official network on CPU; inference receives RGB and K only."""
-    def __init__(self, model_dir, threads=8):
+    def __init__(self, model_dir, threads=8, *, variant='omni3d'):
         import hashlib
         import torch
         if torch.__version__ != '2.6.0+cpu' or np.__version__ != '1.26.4':
@@ -114,7 +125,7 @@ class CubeDetector:
         from cubercnn.modeling.backbone import build_dla_from_vision_fpn_backbone  # noqa:F401
         from cubercnn.modeling.meta_arch import build_model
         model_dir = Path(model_dir)
-        for name, expected in ASSETS.items():
+        for name, expected in model_assets(variant).items():
             if hashlib.sha256((model_dir/name).read_bytes()).hexdigest() != expected:
                 raise ValueError('Official Cube R-CNN asset changed: ' + name)
         torch.set_num_threads(threads)
@@ -135,6 +146,8 @@ class CubeDetector:
             raise ValueError(f'Checkpoint mismatch: {missing}, {incompatible.unexpected_keys}')
         self.model.eval().requires_grad_(False)
         self.categories = json.loads((model_dir/'category_meta.json').read_text())['thing_classes']
+        if len(self.categories) != cfg.MODEL.ROI_HEADS.NUM_CLASSES:
+            raise ValueError('Official category metadata does not match classifier size')
         self.resize = T.ResizeShortestEdge(cfg.INPUT.MIN_SIZE_TEST, cfg.INPUT.MAX_SIZE_TEST)
         self.input_format = cfg.INPUT.FORMAT
 
@@ -154,6 +167,11 @@ class CubeDetector:
                   'height': h, 'width': w, 'K': k.copy()}
         with torch.inference_mode():
             out = self.model([inputs])[0]['instances'].to('cpu')
+        if len(out) == 0:
+            return {'centers':np.empty((0,3),np.float32), 'dimensions':np.empty((0,3),np.float32),
+                    'rotations':np.empty((0,3,3),np.float32), 'corners':np.empty((0,8,3),np.float32),
+                    'scores':np.empty(0,np.float32), 'classes':np.empty(0,np.int64),
+                    'boxes2d':np.empty((0,4),np.float32)}
         return {'centers': out.pred_center_cam.numpy(), 'dimensions': out.pred_dimensions.numpy(),
                 'rotations': out.pred_pose.numpy(), 'corners': out.pred_bbox3D.numpy(),
                 'scores': out.scores.numpy(), 'classes': out.pred_classes.numpy(),

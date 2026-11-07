@@ -26,6 +26,10 @@ if [ -n "${2:-}" ]; then
 fi
 export MPLCONFIGDIR="$OUT/matplotlib-cache"
 echo 'Four hours is a scheduler ceiling, not an ETA.'
+VARIANT="${3:-omni3d}"
+REFERENCE_ARGS=()
+if [ -n "${4:-}" ]; then REFERENCE_ARGS=(--reference-archive "$4"); fi
+echo "MODEL VARIANT: $VARIANT"
 srun "$WORK/bin/urbaning-python.sh" -u scripts/urbaning_rgb3d_late.py \
   "${RUNTIME_ARGS[@]}" --base "$BASE" --output "$OUT/run" \
-  --cpu-threads "$SLURM_CPUS_PER_TASK"
+  --cpu-threads "$SLURM_CPUS_PER_TASK" --model-variant "$VARIANT" "${REFERENCE_ARGS[@]}"

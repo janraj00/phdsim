@@ -96,19 +96,30 @@ def main():
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--model-dir',type=Path)
     p.add_argument('--cpu-threads',type=int,default=8)
+    p.add_argument('--model-variant',choices=['omni3d','outdoor'],default='omni3d')
+    p.add_argument('--reference-archive',type=Path)
     a=p.parse_args()
     if a.cpu_threads < 1:p.error('Positive CPU thread count required')
     if a.bootstrap and a.reuse_runtime:p.error('Select bootstrap OR reuse-runtime')
+    if a.model_variant=='outdoor' and not a.reference_archive:
+        p.error('Outdoor comparison requires --reference-archive')
+    if a.reference_archive and not a.reference_archive.is_file():
+        p.error('Reference archive does not exist')
     if a.bootstrap or a.reuse_runtime:
         if a.bootstrap:model,env=prepare(a.bootstrap.resolve())
         else:model,env=reuse(a.reuse_runtime.resolve())
         env['MPLCONFIGDIR']=str(a.output.resolve().parent/'matplotlib-cache')
+        if a.model_variant=='outdoor':
+            model=download_variant(a.output.resolve().parent/'models'/'outdoor','outdoor')
         args=[sys.executable,'-u',str(Path(__file__).resolve()),'--base',str(a.base),
-              '--output',str(a.output),'--model-dir',str(model),'--cpu-threads',str(a.cpu_threads)]
+              '--output',str(a.output),'--model-dir',str(model),'--cpu-threads',str(a.cpu_threads),
+              '--model-variant',a.model_variant]
+        if a.reference_archive:args.extend(['--reference-archive',str(a.reference_archive.resolve())])
         os.execve(sys.executable,args,env)
     if not a.model_dir:p.error('--model-dir, --bootstrap or --reuse-runtime is required')
     from phdsim.experiments.urbaning_rgb3d_late import run
-    run(a.base.resolve(),a.model_dir.resolve(),a.output.resolve(),a.cpu_threads)
+    run(a.base.resolve(),a.model_dir.resolve(),a.output.resolve(),a.cpu_threads,
+        a.model_variant,a.reference_archive.resolve() if a.reference_archive else None)
 
 
 def reuse(directory):
@@ -129,6 +140,22 @@ def reuse(directory):
     # Put plotting caches in the NEW output, not in the reused source runtime.
     print('REUSE VERIFIED PRIVATE CPU RUNTIME (no install/build):',directory,flush=True)
     return model,env
+
+
+def download_variant(directory,variant):
+    """Download a complete hash-pinned official bundle into NEW output only."""
+    from phdsim.perception.urbaning.rgb3d_late import model_assets
+    directory.mkdir(parents=True,exist_ok=True)
+    for name,expected in model_assets(variant).items():
+        target=directory/name
+        if target.exists() and hashlib.sha256(target.read_bytes()).hexdigest()==expected:continue
+        print('DOWNLOAD OFFICIAL',variant,name,flush=True)
+        temp=target.with_suffix(target.suffix+'.part')
+        urllib.request.urlretrieve('https://dl.fbaipublicfiles.com/cubercnn/'+variant+'/'+name,temp)
+        if hashlib.sha256(temp.read_bytes()).hexdigest()!=expected:
+            raise ValueError('Downloaded official asset hash differs: '+name)
+        os.replace(temp,target)
+    return directory
 
 
 if __name__=='__main__':main()
