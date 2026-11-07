@@ -1,10 +1,52 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-06**. This document summarizes the latest decisions in the
+Updated: **2026-11-07**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
-## Controlled Car1 adapter development test prepared (2026-11-06)
+## Frozen final-model TRAIN/validation diagnosis prepared (2026-11-07)
+
+User supplied validation200 results for completed seeds0/1 of controlled run:
+original LiDAR21.6500% both; LiDAR adapter18.1889%/19.4775%; aligned RGB
+adapter17.4971%/18.7434%; shuffled-training control18.7901%/18.3470%; shuffled-
+evaluation RGB15.1754%/16.4852%. RGB-minus-LiDAR-adapter was reported as
+-0.6918/-0.7340pp. This is a negative development result in both supplied seeds;
+the third seed and final ZIP have not been read here. Do not claim validation
+gain or uniquely diagnose overfitting from these numbers alone.
+
+User authorized evaluation of the same fixed final models on TRAIN400, beside
+existing validation200. Prepared separate `urbaning_cobevt_rgb_train_eval` and
+submitter. No optimizer/backward, fitting, target regeneration, normalization,
+checkpoint selection, CNN/LiDAR backbone inference, source writes or crossing3.
+Require completed canonical source ZIP; if its collector21599633 is still active,
+automatically wait via afterok. Preserve original controlled checkout/output.
+
+Bind source protocol/code/normalizers/models/receipts to archive checksums, verify
+existing features and complete final32-epoch histories. Compute TRAIN original
+LiDAR once; evaluate three adapters aligned, plus a separately labeled shuffled-
+training-control as-trained input diagnostic, for every seed (5200 frames total).
+Reuse the already independently replayed original validation reports without
+rerunning validation inference/matching. Stream cached features, freeze all
+parameters and check original source hashes afterward. New output:
+`phdsim/runs/urbaning-cobevt-rgb-train-eval-001`, own logs/ and resumable per-frame
+prediction receipts. Independent TRAIN AP replay before final ZIP.
+
+Report changes vs original LiDAR WITHIN each split, pooled and per-original-
+recording TRAIN AP, class/seed AP, paired RGB-minus-LiDAR changes, frozen TRAIN
+anchor losses and original optimization curves. Distinguish shifted-input
+control diagnostics from aligned TRAIN/validation comparison. Six focused new
+tests plus28 earlier checks pass; no native diagnostic run submitted here.
+See [frozen TRAIN evaluation](URBANING_COBEVT_RGB_TRAIN_EVAL.md).
+
+## Controlled Car1 adapter development run, user-reported progress (2026-11-07)
+
+Submitted original chain21599628 inventory,21599629 startup gate,21599630 feature
+array,21599631 normalization,21599632 seed array,21599633 collector. User logs
+showed all600 feature frames and normalization completed successfully; native
+startup gate passed. Seeds0/1 completed TRAIN and validation; their supplied
+numbers are above. Current seed2/collector status is not directly known here.
+
+### Original prepared protocol (2026-11-06)
 
 User requested a strong controlled test after successful TRAIN8. Prepared
 `submit_urbaning_cobevt_rgb_controlled.sh`:400 TRAIN (existing0001 crossing2 and
@@ -26,8 +68,8 @@ validation GT but never fit/select by it. Output has own logs/, final9 models,
 per-seed/class AP/both orders, paired deltas, raw predictions/GT and receipts.
 
 Nine controlled tests plus13 trainer/6 preflight tests pass (28). Native-size
-channels-last CPU updates with actual pinned PointPillarLoss also checked;
-no native600-frame cache/training result yet and no job submitted here. Existing
+channels-last CPU updates with actual pinned PointPillarLoss also checked.
+Native user-reported progress and partial results are above. Existing
 private RGB bootstrap retains3 child-process checks and actual encoder startup
 coverage. User runs the command on Ares. See
 [controlled adapter protocol](URBANING_COBEVT_RGB_CONTROLLED.md).
