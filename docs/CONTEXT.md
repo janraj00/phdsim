@@ -4,6 +4,39 @@ Updated: **2026-11-07**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Completed depth run; cached RGB complementarity audit prepared (2026-11-07)
+
+User-reported Ares21658632 COMPLETED in58m57s. TRAIN400 / development-validation200
+BEV mAP@.5: LiDAR24.2799/21.5380%, original outdoor RGB3.2687/3.1569%,
+depth-adapted RGB4.5177/3.2419%, original late fusion19.8647/16.7683%,
+adapted fusion21.0608/16.6003%. Depth-only fitting produced little validation
+RGB AP gain and fusion remained below LiDAR. The new ZIP has not been read
+locally; no21658632 object-recovery count is known from these log values.
+
+User asked to count RGB detections missed by LiDAR and LiDAR detections lost
+after fusion. Implemented a cached-outcome audit for the completed600 primitive
+frames, with separate TRAIN/validation, class and sequence totals. Preserve GT
+identity under the original greedy class/float32-IoU/radius rules; report
+standalone RGB-only matches, retained extras, fusion gains/losses and FP.
+Trace lost LiDAR TP predictions to the actual earlier retained RGB/LiDAR NMS
+blocker or to retained-prediction GT reassignment. These are per-frame GT
+appearances, not unique tracks, mAP or a deployable GT-based fusion policy.
+
+The audit must exactly reproduce all5 source class AP/mAP at.3/.5/.7 in BOTH
+orders, check source completion checksum/CRC/inventory and keep the source
+unchanged. No detector/fitting/threshold tuning/crossing3. Five focused tests
+pass, including destructive RGB suppression, stable ties, empty RGB, class/
+radius/threshold behavior, reassignment and corrupt/checksum/AP guards.
+The same tool also reproduced BOTH source AP orders on the earlier general
+TRAIN8 archive21653482 and recovered its known5 gained/4 lost GT appearances,
+all4 losses due to RGB NMS. This historical check is NOT21658632 evidence.
+
+Entry point scripts/slurm/urbaning_rgb3d_complementarity.sbatch uses existing
+container Python only,4CPU/12GiB/30min scheduler ceiling. Default source is
+21658632 ZIP. Output report/summary/ZIP includes full object-identity traces.
+See [complementarity audit](URBANING_RGB3D_COMPLEMENTARITY.md). Native600-frame
+complementarity results remain pending until the user submits this audit.
+
 ## Outdoor RGB result received; native depth-layer adaptation prepared (2026-11-07)
 
 User-reported Ares21655505 completed in2m50s: same TRAIN8 official outdoor
