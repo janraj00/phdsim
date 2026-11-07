@@ -171,8 +171,8 @@ class CubeDetector:
             return {'centers':np.empty((0,3),np.float32), 'dimensions':np.empty((0,3),np.float32),
                     'rotations':np.empty((0,3,3),np.float32), 'corners':np.empty((0,8,3),np.float32),
                     'scores':np.empty(0,np.float32), 'classes':np.empty(0,np.int64),
-                    'boxes2d':np.empty((0,4),np.float32)}
+                    'boxes2d':np.empty((0,4),np.float32), 'center_pixels':np.empty((0,2),np.float32)}
         return {'centers': out.pred_center_cam.numpy(), 'dimensions': out.pred_dimensions.numpy(),
                 'rotations': out.pred_pose.numpy(), 'corners': out.pred_bbox3D.numpy(),
                 'scores': out.scores.numpy(), 'classes': out.pred_classes.numpy(),
-                'boxes2d': out.pred_boxes.tensor.numpy()}
+                'boxes2d': out.pred_boxes.tensor.numpy(), 'center_pixels':out.pred_center_2D.numpy()}

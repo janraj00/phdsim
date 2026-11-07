@@ -4,6 +4,41 @@ Updated: **2026-11-07**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Outdoor RGB result received; native depth-layer adaptation prepared (2026-11-07)
+
+User-reported Ares21655505 completed in2m50s: same TRAIN8 official outdoor
+RGB6.935736%, late fusion27.024288%, original LiDAR/NMS control29.149123%.
+General checkpoint values were4.097309% and29.228132%, respectively. Outdoor
+improves standalone RGB on this tiny sample but worsens raw-score late fusion.
+Its ZIP has NOT been read locally yet; no per-class outdoor claim is verified.
+
+Implemented the next controlled CPU experiment: freeze the outdoor Cube R-CNN
+except its EXISTING1024-to-11 native depth linear readout. Fixed weighted ridge
+around pretrained weights uses projected-GT-associated RGB features from400
+TRAIN frames only; fold normalization back into the original layer. Categories
+with fewer than32 TRAIN positives keep original parameters. Freeze/checksum
+before loading200 development-validation records. No validation selection,
+crossing3, new LiDAR inference, learned fusion or RGB score changes. This is
+partial supervised native RGB adaptation, not a new BEV adapter or full-detector
+fine-tuning. Primary metric stays globally sorted BEV mAP@.5; both AP orders,
+class AP, TRAIN/validation and matched depth MAE are reported separately.
+
+Reuse the completed private runtime21649159 and outdoor model/pilot21655505
+read-only; no installation or compilation. An8-TRAIN native gate precedes full
+feature extraction: source AP/camera/GT bindings, exact captured native depth,
+and real detector versus modified-head replay. Verify the actual fitted state
+against native forward before validation too. Verified camera caches support
+resume; source hashes and frozen model must remain unchanged. Download excludes
+large feature tensors but includes all600 primitive AP outcome records.
+
+Checks:12 focused/regression tests pass, including a synthetic400/200 end-to-end
+pipeline proving fit-before-validation and corruption rejection. Real official
+outdoor CPU forward passes captured-feature/virtual-depth checks and replay of
+a nontrivial fitted ORIGINAL layer (synthetic targets only). Syntax checks pass.
+The controlled UrbanIng depth experiment has NOT run; no accuracy gain is
+claimed. Entry point: scripts/slurm/urbaning_rgb3d_depth.sbatch,8CPU/24GiB,
+4h scheduler ceiling, not ETA. See [native depth protocol](URBANING_RGB3D_DEPTH.md).
+
 ## RGB3D baseline reviewed; paired outdoor checkpoint check prepared (2026-11-07)
 
 User asked to improve RGB itself after the weak zero-shot result. Completed
