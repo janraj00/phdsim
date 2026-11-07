@@ -4,6 +4,43 @@ Updated: **2026-11-07**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## LiDAR-preserving additive RGB fusion prepared (2026-11-07)
+
+User supplied completed complementarity job21662623 final per-class tables.
+For depth-adapted RGB these sum to165 extra standalone RGB GT appearances,
+129 gained after original fusion and417 lost versus LiDAR; baseline RGB
+162/136/495. These are pasted log counts, not a locally read archive. Do not
+attribute all losses to RGB NMS without the detailed trace. Counts are GT
+appearances, not unique tracks or mAP.
+
+User authorized a LiDAR-preserving fusion test. Implemented a GT-free additive
+rule keeping ALL original LiDAR boxes, including overlapping LiDAR proposals.
+Reject same-class RGB overlap at the unchanged existing .2 BEV NMS threshold;
+suppress duplicates only among RGB additions. Run both frozen RGB variants
+with two separately labeled score rules: unchanged raw confidence, and explicit
+LiDAR-first priority ranks (.5+.5*s for LiDAR, .49*s for RGB). No fitting or
+threshold search, no selection of the best variant. This is exploratory
+development comparison after observed validation results, not a blind test.
+
+Physical box retention does not guarantee unchanged greedy GT matches.
+LiDAR-first deliberately protects ranking; false positives appended after
+LiDAR may leave VOC AP unchanged. Report raw FP/TP and added boxes beside
+class mAP and GT gains/losses; never present rank scores as calibrated
+probabilities or non-decreasing AP alone as useful multimodal improvement.
+
+Use completed21658632 primitive ZIP, TRAIN400 / validation200 separately.
+All5 original baselines must exactly reproduce class AP@.3/.5/.7 and macro
+in BOTH orders. New written outcome arrays are independently re-read for AP
+parity; source hashes/CRC/inventory and LiDAR preservation checked. Source
+models/caches remain read-only; no CNN, LiDAR, training or crossing3 calls.
+
+Six focused tests and Python/Bash syntax checks pass, including destructive
+suppression, empty/same-class/tied inputs, unchanged overlapping LiDAR,
+priority versus FP-induced AP loss, greedy reassignment and portable replay/
+checksum/AP guards. New Ares additive result remains pending.
+Entry point scripts/slurm/urbaning_rgb3d_additive.sbatch uses4CPU/12GiB with
+1h ceiling (not ETA). See [additive fusion](URBANING_RGB3D_ADDITIVE.md).
+
 ## Completed depth run; cached RGB complementarity audit prepared (2026-11-07)
 
 User-reported Ares21658632 COMPLETED in58m57s. TRAIN400 / development-validation200
