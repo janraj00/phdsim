@@ -1,8 +1,43 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-07**. This document summarizes the latest decisions in the
+Updated: **2026-11-08**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Additive result received; broader RGB head fitting prepared (2026-11-08)
+
+User pasted DONE from additive21667369. Validation200: LiDAR21.5380% mAP@.5;
+baseline/depth additive raw18.5275/18.1581%, LiDAR-first22.0671/21.9834%.
+Both retain all old GT matches;110/102 extra GT appearances. Added21943/21926
+RGB boxes; FP increases7027 ->27986/28060. Priority ranking protects AP but
+does not remove FP. No good-precision or held-out improvement claim. Supplied
+ZIP hash d865ee5984c3d9f4189c571ac9a5e2677273225d0bac3ba19c0b4dbe1868c6f0,
+33781801bytes; archive not independently downloaded/read in this session.
+
+User authorized further RGB adaptation and asked to consider thermal. Prepared
+native four-coarse-class ROI-head training: frozen outdoor backbone/FPN/RPN,
+train2D feature/classifier/box and full3D shared/readout/uncertainty heads.
+Fixed mean initialization from existing fine categories; evaluate the untrained
+four-class initializer as an explicit control. Native foreground/background and
+cuboid losses, projected3D GT as weak2D supervision with ignores and near-plane
+skips. Four fixed TRAIN400 epochs, SGD1e-4, seed0; final frozen before loading
+development-validation200. No crossing3 or validation parameter selection.
+
+Native positive/empty-label gradient and save/load checks precede actual fitting;
+gate changes are discarded. Seven local tests use PyTorch with a toy detector,
+including synthetic400/200 pipeline/AP replay; compiled native Cube losses are
+NOT yet verified. Native Ares training remains pending. Reuse existing runtime,
+outdoor model and source depth ZIP read-only;8CPU/24GiB/24h scheduler ceiling,
+not ETA; substantially more CPU work than depth-only fitting. Fresh output;
+epoch checkpoints are saved but automatic resume is not implemented.
+See [RGB head fine-tuning](URBANING_RGB3D_FINETUNE.md).
+
+Thermal is infrastructure evidence, not a pixel-aligned vehicle-RGB channel.
+Proposed follow-up: thermal2D detections with infrastructure-LiDAR localization,
+controlled against the SAME infrastructure LiDAR without thermal. Distinguish
+hybrid from thermal-only3D; retain native times/calibration and account for peer
+payloads later. Thermal code/training is not implemented/submitted here. See
+[thermal design](URBANING_THERMAL_PLAN.md).
 
 ## LiDAR-preserving additive RGB fusion prepared (2026-11-07)
 
