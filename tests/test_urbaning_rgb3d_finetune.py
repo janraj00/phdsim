@@ -62,12 +62,16 @@ class Geometry(unittest.TestCase):
             back = upright_boxes(row['center'][None], row['dimensions'][None], row['pose'][None], extrinsic)
             np.testing.assert_allclose(back, gt, atol=1e-10)
 
-    def test_small_boxes_ignore_and_near_plane_skips_camera(self):
+    def test_small_and_near_plane_boxes_ignore_only_their_object(self):
         gt = truth()
         small_k = K.copy(); small_k[:2, :2] *= .1
         self.assertEqual(projected_targets(gt, [4], E, small_k, 320, 200)[0]['class'], -1)
         crossing = gt.copy(); crossing[:, :, 0] -= 10
-        self.assertIsNone(projected_targets(crossing, [1], E, K, 320, 200))
+        rows = projected_targets(np.concatenate((gt, crossing)), [1, 1], E, K, 320, 200)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]['class'], 0)
+        self.assertEqual(rows[1]['class'], -1)
+        self.assertTrue(rows[1]['near_plane_ignore'])
         self.assertEqual(projected_targets(np.empty((0, 8, 3)), [], E, K, 320, 200), [])
 
     def test_fit_recording_boundary(self):

@@ -213,7 +213,7 @@ def run(base, runtime, model_dir, source, output, threads, gate_only=False):
                     'coarse_initialization_groups': GROUPS, 'initializer': 'fixed mean of existing category rows',
                     'trainable': ['native box_head', 'native box_predictor', 'native cube_head'],
                     'frozen': ['backbone/FPN', 'RPN', 'priors'],
-                    'supervision': 'projected 3D GT; weak 2D boxes, no visibility labels; ignore small/truncated; skip near-plane-straddling images',
+                    'supervision': 'projected 3D GT; weak 2D boxes, no visibility labels; per-object ignore small/truncated/near-plane-straddling boxes',
                     'selection': 'fixed final four epochs; no validation fitting/selection; no crossing3',
                     'code': {str(p.relative_to(Path(__file__).parents[3])): sha(p.read_bytes()) for p in code_paths}}
         write_json(output/'protocol.json', protocol)
@@ -232,13 +232,12 @@ def run(base, runtime, model_dir, source, output, threads, gate_only=False):
             for index in range(6):
                 image, e, k, binding = camera(record, index)
                 rows = projected_targets(record['gt_boxes'], record['gt_labels'], e, k, image.shape[1], image.shape[0])
-                if rows is not None:
-                    for r in rows:
-                        if r['class'] >= 0:
-                            support[r['class']] += 1
+                for r in rows:
+                    if r['class'] >= 0:
+                        support[r['class']] += 1
                 inventory.append({'key': record['key'], 'camera': index, 'binding': binding,
-                                  'skipped_near_plane': rows is None,
-                                  'positive_count': None if rows is None else sum(r['class'] >= 0 for r in rows)})
+                                  'near_plane_ignore_count': sum(r['near_plane_ignore'] for r in rows),
+                                  'positive_count': sum(r['class'] >= 0 for r in rows)})
         if np.any(support == 0):
             raise ValueError('At least one coarse class has no TRAIN supervision')
         write_json(output/'train-inventory.json', {'cameras': inventory, 'class_support': support.tolist()})
@@ -253,8 +252,6 @@ def run(base, runtime, model_dir, source, output, threads, gate_only=False):
                     order = np.random.default_rng(epoch).permutation(len(inventory))
                     for position in order:
                         row = inventory[position]
-                        if row['skipped_near_plane']:
-                            continue
                         record, index = bykey[row['key']], row['camera']
                         image, e, k, binding = camera(record, index)
                         if binding != row['binding']:

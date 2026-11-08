@@ -59,8 +59,9 @@ and upright Car1 boxes roundtrip in tests under BOTH handednesses.
 Project cuboids into each image. Front-facing boxes at least12px on both axes,
 at least50% inside the image, within the existing100m support supervise
 positives. Other intersecting front-facing boxes become ignore regions.
-Skip an image when a near-plane-straddling cuboid intersects its field of view;
-record all skips and positive support. Retain all original GT in evaluation.
+Near-plane-straddling boxes are clipped and ignored individually; other objects
+from that camera remain in training. Record per-camera near-plane-ignore and
+positive counts. Retain all original GT in evaluation.
 Projected boxes are weak2D annotations: they are amodal and do not resolve
 occlusion/visibility. This is a material limitation of the training labels.
 

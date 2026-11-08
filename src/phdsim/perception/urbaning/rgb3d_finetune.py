@@ -38,8 +38,8 @@ def projected_targets(boxes, labels, extrinsic, intrinsic, width, height):
     """Weak 2D boxes projected from annotated 3D cuboids; not visible-box labels.
 
     Fully front-facing boxes >=12px and >=50% in-image area supervise positives.
-    Smaller/truncated/ineligible front-facing boxes become ignore regions.
-    No filtering is applied to GT during evaluation. Occlusion is not inferred.
+    Small/truncated/near-plane-straddling boxes become per-object ignore regions;
+    one bad projection never drops the other objects from its image.
     """
     from phdsim.perception.urbaning.rgb3d_late import camera_to_ego
     from phdsim.evaluation.urbaning_cached import _radius_mask
@@ -52,10 +52,12 @@ def projected_targets(boxes, labels, extrinsic, intrinsic, width, height):
     allowed_radius = _radius_mask(boxes)
     rows = []
     for i, (box, cam) in enumerate(zip(boxes, optical)):
+        near_plane_ignore = False
         if np.any(cam[:, 2] <= .1):
-            # A near-plane crossing may intersect the entire image. Avoid
-            # incorrectly teaching its pixels as background by skipping image.
             if cam[:, 2].max() > .1:
+                # Clip this cuboid against the camera near plane and mark only
+                # its image rectangle as ignored. Do not discard every other
+                # valid object in this camera frame.
                 vertices = list(cam[cam[:, 2] > .1])
                 for a, b in ((0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6),
                              (6, 7), (7, 4), (0, 4), (1, 5), (2, 6), (3, 7)):
@@ -64,20 +66,27 @@ def projected_targets(boxes, labels, extrinsic, intrinsic, width, height):
                         vertices.append(cam[a]+t*(cam[b]-cam[a]))
                 clipped = np.asarray(vertices) @ intrinsic.T
                 clipped = clipped[:, :2]/clipped[:, 2:3]
+                if not np.isfinite(clipped).all():
+                    raise ValueError('Nonfinite near-plane clipped projection')
                 lo, hi = clipped.min(0), clipped.max(0)
-                if np.all(np.minimum(hi, (width, height)) > np.maximum(lo, (0, 0))):
-                    return None
-            continue
-        p = cam @ intrinsic.T
-        uv = p[:, :2] / p[:, 2:3]
-        lo, hi = uv.min(0), uv.max(0)
-        area = np.maximum(hi-lo, 0).prod()
-        rect = np.r_[np.maximum(lo, (0, 0)), np.minimum(hi, (width, height))]
+                rect = np.r_[np.maximum(lo, (0, 0)), np.minimum(hi, (width, height))]
+                near_plane_ignore = np.all(rect[2:] > rect[:2])
+                if not near_plane_ignore:
+                    continue
+                area = 0.
+            else:
+                continue
+        else:
+            p = cam @ intrinsic.T
+            uv = p[:, :2] / p[:, 2:3]
+            lo, hi = uv.min(0), uv.max(0)
+            area = np.maximum(hi-lo, 0).prod()
+            rect = np.r_[np.maximum(lo, (0, 0)), np.minimum(hi, (width, height))]
         size = rect[2:]-rect[:2]
         if np.any(size <= 0):
             continue
-        ignore = not (allowed_radius[i] and np.all(size >= 12)
-                      and area > 0 and size.prod()/area >= .5)
+        ignore = near_plane_ignore or not (allowed_radius[i] and np.all(size >= 12)
+                                           and area > 0 and size.prod()/area >= .5)
         edges = np.stack((box[1]-box[0], box[3]-box[0], box[4]-box[0]))
         length, box_width, box_height = np.linalg.norm(edges, axis=1)
         if min(length, box_width, box_height) <= 0:
@@ -88,9 +97,14 @@ def projected_targets(boxes, labels, extrinsic, intrinsic, width, height):
         if not np.allclose(pose.T @ pose, np.eye(3), atol=1e-5) or np.linalg.det(pose) < .99999:
             raise ValueError('Invalid proper camera-space target rotation')
         center = cam.mean(0)
+        if near_plane_ignore and center[2] <= .1:
+            # The ROI is ignored by native sampling; finite positive placeholders
+            # keep the Instances fields well formed without inventing supervision.
+            center = np.array([0., 0., .1])
         pixel = intrinsic @ center
         pixel = pixel[:2]/pixel[2]
         rows.append({'gt_index': i, 'box2d': rect, 'class': -1 if ignore else int(labels[i])-1,
+                     'near_plane_ignore': bool(near_plane_ignore),
                      'center': center, 'pixel': pixel,
                      'dimensions': np.array((box_width, box_height, length)), 'pose': pose})
     return rows

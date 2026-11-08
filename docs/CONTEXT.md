@@ -4,6 +4,25 @@ Updated: **2026-11-08**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## RGB geometry filter invalidated fine-tuning run (2026-11-08)
+
+User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,
+2,341 skipped by near-plane geometry (97.5%), six had zero positive labels.
+Positive support was `[609,44,4,83]` for Vehicle/Heavy_Vehicle/2Wheeler/Pedestrian.
+The near-plane code dropped an entire camera view when ANY ground-truth cuboid
+crossed the camera plane and intersected the image. Only59 views trained per
+epoch; results are not a meaningful comparison and must not support a claim
+that RGB head fine-tuning failed. The previous four-class initialization also
+reduced RGB mAP before fitting, so this result contains TWO confounds.
+
+The focused correction clips that cuboid to the camera plane, marks its image
+region ignored, and retains other valid objects in the same camera. Inventory
+now records per-view ignored near-plane boxes and positive examples; camera
+frames are not discarded for this reason. A corrected run must rebuild from
+the original outdoor/depth checkpoint on fresh output, pass the native gate,
+and confirm zero near-plane-skipped views plus substantially broader class
+support before accuracy results are interpreted. Do not reuse old checkpoints.
+
 ## RGB native gate naming failure fixed (2026-11-08)
 
 User reported Ares21668971 FAILED after9m59s during the disposable native gate,
