@@ -69,12 +69,16 @@ Pinned upstream positive sampling is reused. Its empty-GT indexing failure is
 handled in a narrow alternate sampler: remove proposals covered by ignore
 regions and assign the remaining sampled proposals to background. Keep empty
 cameras; do not silently turn the run into positive-only fitting. Fail if no
-background proposal remains rather than continue with an undefined loss.
+background proposal remains on an ignore-only camera; record and skip just
+that optimizer update. Never relabel a proposal inside an ignored object region
+as background merely to force a step.
 
 ## Fixed training and controls
 
-- Seed0; four fixed epochs across2400 TRAIN camera images, excluding declared
-  near-plane skips. SGD lr1e-4, momentum.9, weight decay1e-4,100-update linear
+- Seed0; four fixed epochs across all2400 TRAIN camera views. Ignore-only
+  views with no remaining safe background proposals skip only that update and
+  are recorded; no proposals inside ignored boxes are relabeled. SGD lr1e-4,
+  momentum.9, weight decay1e-4,100-update linear
   warmup; native128 ROI samples/image; gradient norm clipped at5.
 - Fixed test resize from the official model; no augmentation or hyperparameter
   grid. Require supervision for each of the4 classes. Save each epoch and final

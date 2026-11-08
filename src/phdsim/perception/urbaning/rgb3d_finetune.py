@@ -10,6 +10,10 @@ EPOCHS = 4
 LEARNING_RATE = 1e-4
 
 
+class NoUsableBackgroundProposals(ValueError):
+    """An ignore-only image leaves no safe background ROI for classification."""
+
+
 def train_key(key):
     parts = key.split(':')
     if len(parts) != 3 or parts[0] not in TRAIN_SEQUENCES or parts[2] != '100000':
@@ -135,7 +139,7 @@ def install_empty_sampler(roi):
         indices = indices[torch.randperm(len(indices), device=indices.device)[:self.batch_size_per_image]]
         p = p[indices]
         if len(p) == 0:
-            raise ValueError('No usable background proposals; refuse an empty/NaN classification update')
+            raise NoUsableBackgroundProposals('No usable background proposals; skip this image update')
         p.gt_classes = torch.full((len(p),), self.num_classes, dtype=torch.long, device=indices.device)
         p.gt_boxes = Boxes(p.proposal_boxes.tensor.clone())
         p.gt_boxes3D = torch.zeros((len(p), 9), device=indices.device)

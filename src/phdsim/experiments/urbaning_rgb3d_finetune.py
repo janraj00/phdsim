@@ -13,7 +13,8 @@ import numpy as np
 from phdsim.perception.urbaning.rgb3d_late import OUTDOOR_ASSETS, CLASS_MAP, upright_boxes, classwise_nms
 from phdsim.perception.urbaning.rgb3d_additive import additive_fuse
 from phdsim.perception.urbaning.rgb3d_finetune import (
-    FineTuneDetector, projected_targets, train_key, GROUPS, EPOCHS, LEARNING_RATE)
+    FineTuneDetector, projected_targets, train_key, GROUPS, EPOCHS, LEARNING_RATE,
+    NoUsableBackgroundProposals)
 from phdsim.evaluation.urbaning_cached import frame_statistics, aggregate_statistics, summarize_cached
 
 SCHEMA = 'phdsim-rgb3d-four-class-heads-v1'
@@ -246,32 +247,43 @@ def run(base, runtime, model_dir, source, output, threads, gate_only=False):
                                     lr=LEARNING_RATE, momentum=.9, weight_decay=1e-4)
         history = []
         step = 0
-        with EventStorage() as storage:
-            with (output/'training.jsonl').open('w') as log:
-                for epoch in range(EPOCHS):
-                    order = np.random.default_rng(epoch).permutation(len(inventory))
-                    for position in order:
-                        row = inventory[position]
-                        record, index = bykey[row['key']], row['camera']
-                        image, e, k, binding = camera(record, index)
-                        if binding != row['binding']:
-                            raise ValueError('TRAIN image/calibration/GT changed')
-                        targets = projected_targets(record['gt_boxes'], record['gt_labels'], e, k, image.shape[1], image.shape[0])
-                        for group in optimizer.param_groups:
-                            group['lr'] = LEARNING_RATE*min(1., (step+1)/100)
+        skipped_no_background = 0
+        with (EventStorage() as storage,
+              (output/'training.jsonl').open('w') as log,
+              (output/'skipped-updates.jsonl').open('w') as skipped_log):
+            for epoch in range(EPOCHS):
+                order = np.random.default_rng(epoch).permutation(len(inventory))
+                for position in order:
+                    row = inventory[position]
+                    record, index = bykey[row['key']], row['camera']
+                    image, e, k, binding = camera(record, index)
+                    if binding != row['binding']:
+                        raise ValueError('TRAIN image/calibration/GT changed')
+                    targets = projected_targets(record['gt_boxes'], record['gt_labels'], e, k, image.shape[1], image.shape[0])
+                    for group in optimizer.param_groups:
+                        group['lr'] = LEARNING_RATE*min(1., (step+1)/100)
+                    try:
                         losses, norm = update(detector, detector.training_input(image, k, targets), optimizer)
-                        step += 1
-                        entry = {'step': step, 'epoch': epoch+1, 'key': row['key'], 'camera': index,
-                                 'positive_count': row['positive_count'], 'losses': losses, 'gradient_norm': norm}
-                        log.write(json.dumps(entry, allow_nan=False)+'\n')
-                        storage.step()
-                        if step % 100 == 0:
-                            log.flush()
-                            print('TRAIN', epoch+1, '/', EPOCHS, 'updates', step, 'loss', sum(losses.values()), flush=True)
-                    torch.save(detector.trainable_state(), output/f'models/epoch-{epoch+1}.pt')
-                    history.append({'epoch': epoch+1, 'updates': step})
-                    if snapshot_hash(detector.model, True) != frozen_sha:
-                        raise ValueError('Frozen backbone/RPN/priors changed')
+                    except NoUsableBackgroundProposals as exc:
+                        skipped_no_background += 1
+                        skipped_log.write(json.dumps({'epoch': epoch+1, 'key': row['key'],
+                                                      'camera': index, 'reason': str(exc)})+'\n')
+                        continue
+                    step += 1
+                    entry = {'step': step, 'epoch': epoch+1, 'key': row['key'], 'camera': index,
+                             'positive_count': row['positive_count'], 'losses': losses, 'gradient_norm': norm}
+                    log.write(json.dumps(entry, allow_nan=False)+'\n')
+                    storage.step()
+                    if step % 100 == 0:
+                        log.flush()
+                        skipped_log.flush()
+                        print('TRAIN', epoch+1, '/', EPOCHS, 'updates', step, 'loss', sum(losses.values()), flush=True)
+                skipped_log.flush()
+                torch.save(detector.trainable_state(), output/f'models/epoch-{epoch+1}.pt')
+                history.append({'epoch': epoch+1, 'updates': step,
+                                'skipped_no_background_total': skipped_no_background})
+                if snapshot_hash(detector.model, True) != frozen_sha:
+                    raise ValueError('Frozen backbone/RPN/priors changed')
         trained = detector.trainable_state()
         final_path = output/'models/final-heads.pt'
         torch.save(trained, final_path)
@@ -386,7 +398,8 @@ def run(base, runtime, model_dir, source, output, threads, gate_only=False):
         archive = output/'urbaning-rgb3d-finetune.zip'
         with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED) as bundle:
             for name in ('protocol.json', 'report.json', 'summary.md', 'native-gate.json', 'train-inventory.json', 'training.jsonl',
-                         'models/initialized-heads.pt', 'models/final-heads.pt', 'models/freeze.json'):
+                         'models/initialized-heads.pt', 'models/final-heads.pt', 'models/freeze.json',
+                         'skipped-updates.jsonl'):
                 bundle.write(output/name, name)
             for split in ('train', 'validation'):
                 for path in sorted((output/('frames-'+split)).glob('*.npz')):

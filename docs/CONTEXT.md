@@ -23,6 +23,15 @@ the original outdoor/depth checkpoint on fresh output, pass the native gate,
 and confirm zero near-plane-skipped views plus substantially broader class
 support before accuracy results are interpreted. Do not reuse old checkpoints.
 
+Corrected job21687441 passed the revised gate and began epoch1, then stopped
+after300 updates because an ignore-only camera had every RPN proposal covered
+by projected near-plane boxes. The empty-target sampler correctly refused to
+mislabel these proposals as background, but aborting all training was overly
+strict. The follow-up skips that camera's optimizer update and logs the
+key/camera/reason in `skipped-updates.jsonl`. Other frames continue; classifier
+labels are not weakened. Retry with a fresh worktree/output. This is a second
+issue discovered during the corrected run; no useful four-epoch model exists.
+
 ## RGB native gate naming failure fixed (2026-11-08)
 
 User reported Ares21668971 FAILED after9m59s during the disposable native gate,
@@ -1448,3 +1457,4 @@ Follow [the migration guide](MIGRATION.md) before assuming data or weights exist
 > reference, then compare acquisition strategies under communication costs.
 > Preserve earlier PST900 results and clearly distinguish implemented components
 > from plans and experiments that have actually run.
+
