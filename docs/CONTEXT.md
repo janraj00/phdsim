@@ -4,6 +4,23 @@ Updated: **2026-11-08**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## RGB native gate naming failure fixed (2026-11-08)
+
+User reported Ares21668971 FAILED after9m59s during the disposable native gate,
+before the four training epochs. The gate incorrectly required bare loss_cls;
+pinned Cube R-CNN returns BoxHead/loss_cls and Cube/loss_z. Toy tests had used
+the wrong classifier name too. Require the exact upstream names before any
+optimizer update, exercise official names throughout synthetic tests, and log
+gate progress plus actual returned loss values. Missing names produce an error
+listing all returned keys and a failed-gate diagnostic JSON for positive checks.
+
+Eight focused tests and syntax checks pass, including a synthetic400/200 pipeline
+with official loss names and rejection of missing depth loss before mutation.
+Native full startup/empty-image/save-load gate remains to be completed on Ares;
+do not claim training success or change accuracy settings to bypass the guard.
+Preserve failed21668971 output; retry with a new checkout/output/job ID, reusing
+the same existing source runtime/weights/cache. No actual RGB fit result yet.
+
 ## Additive result received; broader RGB head fitting prepared (2026-11-08)
 
 User pasted DONE from additive21667369. Validation200: LiDAR21.5380% mAP@.5;

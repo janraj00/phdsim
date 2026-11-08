@@ -93,10 +93,13 @@ def snapshot_hash(model, frozen_only=False):
     return h.hexdigest()
 
 
-def update(detector, inputs, optimizer):
+def update(detector, inputs, optimizer, *, required_losses=()):
     import torch
     optimizer.zero_grad(set_to_none=True)
     losses = detector.losses(inputs)
+    missing = sorted(set(required_losses)-set(losses))
+    if missing:
+        raise ValueError(f'Missing required native losses {missing}; returned {sorted(losses)}')
     total = sum(losses.values())
     if not total.requires_grad:
         raise ValueError('Native losses have no training graph')
@@ -126,9 +129,16 @@ def native_gate(detector, train, output):
                 rows = projected_targets(record['gt_boxes'], record['gt_labels'], e, k, image.shape[1], image.shape[0])
                 if rows is None or not any(r['class'] >= 0 for r in rows):
                     continue
-                losses, norm = update(detector, detector.training_input(image, k, rows), optimizer)
-                if 'loss_cls' not in losses or not any('loss_z' in name for name in losses):
-                    raise ValueError('Native gate must exercise classification AND depth loss')
+                print('NATIVE GATE positive', record['key'], 'camera', index,
+                      'targets', sum(r['class'] >= 0 for r in rows), flush=True)
+                try:
+                    losses, norm = update(detector, detector.training_input(image, k, rows), optimizer,
+                                          required_losses=('BoxHead/loss_cls', 'Cube/loss_z'))
+                except ValueError as exc:
+                    write_json(output/'native-gate.json', {'passed': False, 'stage': 'positive',
+                                                          'key': record['key'], 'camera': index, 'error': str(exc)})
+                    raise
+                print('NATIVE GATE positive losses', json.dumps(losses, sort_keys=True), flush=True)
                 events.append({'kind': 'positive', 'key': record['key'], 'camera': index,
                                'losses': losses, 'gradient_norm': norm})
                 example = image, k
@@ -140,7 +150,9 @@ def native_gate(detector, train, output):
         # Deliberately empty synthetic labels on a real image exercise the
         # empty-GT implementation only. ALL resulting parameter changes are discarded.
         image, k = example
-        losses, norm = update(detector, detector.training_input(image, k, []), optimizer)
+        losses, norm = update(detector, detector.training_input(image, k, []), optimizer,
+                              required_losses=('BoxHead/loss_cls',))
+        print('NATIVE GATE background losses', json.dumps(losses, sort_keys=True), flush=True)
         events.append({'kind': 'disposable_empty_labels', 'losses': losses, 'gradient_norm': norm})
     if snapshot_hash(detector.model, True) != frozen:
         raise ValueError('Frozen parameters/buffers changed during gate')

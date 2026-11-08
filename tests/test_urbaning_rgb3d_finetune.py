@@ -170,9 +170,9 @@ class ToyDetector(FineTuneDetector):
 
     def losses(self, inputs):
         value = self.model.roi_heads.cube_head(torch.ones(1))
-        losses = {'loss_cls': (value-(.2 if inputs['positive'] else -.2)).square().sum()}
+        losses = {'BoxHead/loss_cls': (value-(.2 if inputs['positive'] else -.2)).square().sum()}
         if inputs['positive']:
-            losses['cube/loss_z'] = (value-.3).square().sum()
+            losses['Cube/loss_z'] = (value-.3).square().sum()
         return losses
 
     def predict(self, image, k):
@@ -181,6 +181,16 @@ class ToyDetector(FineTuneDetector):
 
 
 class Pipeline(unittest.TestCase):
+    def test_missing_native_depth_loss_fails_before_any_optimizer_update(self):
+        detector = ToyDetector()
+        original = detector.trainable_state()
+        optimizer = torch.optim.SGD(detector.model.parameters(), lr=.1)
+        with self.assertRaisesRegex(ValueError, 'Cube/loss_z.*BoxHead/loss_cls'):
+            runner.update(detector, {'positive': False}, optimizer,
+                          required_losses=('BoxHead/loss_cls', 'Cube/loss_z'))
+        for key, value in detector.trainable_state().items():
+            self.assertTrue(torch.equal(value, original[key]))
+
     def test_synthetic_400_200_freeze_controls_and_saved_ap_replay(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td); model = root/'model'; model.mkdir()
@@ -235,6 +245,12 @@ class Pipeline(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'fresh'):
                     runner.run(root, runtime, model, source, out, 1)
             final_report = json.loads((out/'report.json').read_text())
+            gate = json.loads((out/'native-gate.json').read_text())
+            self.assertTrue(gate['passed'])
+            self.assertIn('BoxHead/loss_cls', gate['events'][0]['losses'])
+            self.assertIn('Cube/loss_z', gate['events'][0]['losses'])
+            self.assertIn('BoxHead/loss_cls', gate['events'][1]['losses'])
+            self.assertNotIn('Cube/loss_z', gate['events'][1]['losses'])
             self.assertEqual(final_report['freeze']['updates'], 2400)
             self.assertEqual(final_report['freeze']['class_support'], [2400]*4)
             for split in records:

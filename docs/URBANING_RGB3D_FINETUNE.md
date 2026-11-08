@@ -5,6 +5,15 @@ The user authorized further RGB fitting after additive fusion21667369.
 This experiment is implemented and locally tested with synthetic data. Native
 Linux Cube R-CNN backward/gradient checks and actual training remain pending.
 
+User-reported job21668971 failed after9m59s at an incorrect startup assertion:
+the gate expected bare loss_cls, while pinned native output uses
+BoxHead/loss_cls and Cube/loss_z. The guard now requires those exact keys BEFORE
+backward/optimizer mutation. Synthetic tests use native names, reject missing
+depth loss before updates, and verify foreground/background gate receipts.
+Gate progress/actual values are printed, with returned-key diagnostics on error.
+The four actual training epochs did not start. Keep this failed output and use
+a fresh job-ID output on retry; native startup checks remain pending.
+
 ## Motivation
 
 The supplied validation200 additive result preserves all LiDAR matches and
@@ -113,7 +122,7 @@ Original weights, runtime and earlier experiment directories are not modified.
 
 ## Local verification
 
-Seven focused tests cover exact coarse/background row initialization, tensor
+Eight focused tests cover exact coarse/background row initialization, tensor
 shapes and trainable/frozen parameter boundaries, proper-pose/corner roundtrips
 with either handedness, ignores and near-plane handling, TRAIN key rejection,
 empty/ignore-only native sampler behavior, and a synthetic400/200 end-to-end
