@@ -51,6 +51,14 @@ entry point now adds its own checkout source first. The startup echo now also
 matches the actual twelve-anchor, one-sequence sample. No model/data processing
 occurred in the failed job; retry with fresh output.
 
+Retry21694226 found `/net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work/phdsim/data/urbaning-v2x`
+and loaded the source records, then failed at `ModuleNotFoundError: detectron2`
+after3m06s. The gate had not activated the verified private CPU runtime.
+Following entrypoint now mirrors the fine-tuning script's read-only `reuse()`
+bootstrap for runtime21649159 and receives its path from Slurm. This performs no
+installation/build and does not modify the runtime. No thermal images were
+inferred in21694226; retry with a new worktree and output.
+
 ## Physical source and useful first comparison
 
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed

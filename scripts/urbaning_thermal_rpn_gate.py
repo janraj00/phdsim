@@ -1,18 +1,13 @@
 """Cheap frozen-RPN recall gate for projected UrbanIng thermal boxes."""
 import argparse
+import importlib.util
 import json
+import os
 from pathlib import Path
 import sys
 
-import numpy as np
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'src'))
-
-from phdsim.datasets.urbaning.archive import sequence_directory
-from phdsim.datasets.urbaning.geometry import rectified_image
-from phdsim.experiments.urbaning_rgb3d_finetune import read_inputs
-from phdsim.perception.urbaning.rgb3d_finetune import FineTuneDetector, projected_targets
 
 CLASSES = ('Vehicle', 'Heavy_Vehicle', '2Wheeler', 'Pedestrian')
 GATE_SEQUENCE = '20241126_0017_crossing1_00'
@@ -38,6 +33,7 @@ def find_data_root(base, explicit=None):
 
 
 def load_sequence(root, sequence, cache):
+    from phdsim.datasets.urbaning.archive import sequence_directory
     if sequence not in cache:
         directory = sequence_directory(root, sequence)
         calibration = json.loads((directory/'calibration.json').read_text())
@@ -58,6 +54,7 @@ def vehicle_lidar_to_global(directory, calibration, members):
 
 
 def proposal_recall(proposals, targets):
+    import numpy as np
     if len(targets) == 0:
         return {str(t): [] for t in IOU_THRESHOLDS}
     if len(proposals) == 0:
@@ -73,7 +70,11 @@ def proposal_recall(proposals, targets):
 
 def run(args):
     import cv2
+    import numpy as np
     import torch
+    from phdsim.datasets.urbaning.geometry import rectified_image
+    from phdsim.experiments.urbaning_rgb3d_finetune import read_inputs
+    from phdsim.perception.urbaning.rgb3d_finetune import FineTuneDetector, projected_targets
 
     output = Path(args.output).resolve()
     if output.exists() and any(output.iterdir()):
@@ -177,12 +178,23 @@ def run(args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--base', type=Path, required=True)
-    parser.add_argument('--model-dir', type=Path, required=True)
-    parser.add_argument('--output', type=Path, required=True)
+    for name in ('base', 'runtime', 'model-dir', 'output'):
+        parser.add_argument('--'+name, type=Path, required=True)
     parser.add_argument('--data-root', type=Path)
     parser.add_argument('--threads', type=int, default=4)
+    parser.add_argument('--activated', action='store_true')
     args = parser.parse_args()
+    if not args.activated or os.environ.get('PYTHONHASHSEED') != '0':
+        spec = importlib.util.spec_from_file_location('rgb3d_runtime', ROOT/'scripts/urbaning_rgb3d_late.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _, env = module.reuse(args.runtime.resolve())
+        env.update({'PYTHONHASHSEED': '0', 'MPLCONFIGDIR': str(args.output.resolve()/'matplotlib-cache'),
+                    'OMP_NUM_THREADS': str(args.threads), 'MKL_NUM_THREADS': str(args.threads)})
+        command = [sys.executable, '-u', str(Path(__file__).resolve()), *sys.argv[1:]]
+        if not args.activated:
+            command.append('--activated')
+        os.execve(sys.executable, command, env)
     raise SystemExit(run(args))
 
 

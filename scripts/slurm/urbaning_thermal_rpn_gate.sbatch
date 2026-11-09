@@ -13,6 +13,7 @@ cd "${SLURM_SUBMIT_DIR:?Submit from the thermal-gate checkout}"
 WORK=/net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work
 BASE="$WORK/phdsim"
 MODEL="$BASE/runs/urbaning-rgb3d-late-21655505/models/outdoor"
+RUNTIME="$BASE/runs/urbaning-rgb3d-late-21649159/runtime"
 OUT="${1:-$BASE/runs/urbaning-thermal-rpn-gate-$SLURM_JOB_ID}"
 DATA_ROOT_ARGS=()
 if [[ -n "${URBANING_DATA_ROOT:-}" ]]; then
@@ -23,5 +24,6 @@ echo 'Read-only thermal data and frozen-RPN recall gate; no fitting or validatio
 echo 'Samples twelve uniform TRAIN anchors from crossing1 across associated thermal cameras (up to 72 views).'
 echo 'Stops unless frozen RPN recall reaches the predeclared IoU .3/.5 gates.'
 srun "$WORK/bin/urbaning-python.sh" -u scripts/urbaning_thermal_rpn_gate.py \
-  --base "$BASE" --model-dir "$MODEL" --output "$OUT" --threads "$SLURM_CPUS_PER_TASK" \
+  --base "$BASE" --runtime "$RUNTIME" --model-dir "$MODEL" --output "$OUT" \
+  --threads "$SLURM_CPUS_PER_TASK" \
   "${DATA_ROOT_ARGS[@]}"

@@ -50,6 +50,13 @@ progress line to describe twelve anchors from the single confirmed crossing1
 sequence. Retry with the follow-up commit and a fresh output/job ID. No thermal
 data/model processing occurred in21694006.
 
+Retry21694226 found the Ares data root and read the immutable source records,
+then failed after3m06s at `ModuleNotFoundError: detectron2`. The entrypoint had
+not activated the verified private CPU runtime used by the RGB job. Fixed it to
+call the existing read-only `reuse()` bootstrap before model import, passing
+runtime21649159 from the Slurm script. No thermal image inference occurred.
+Retry with another fresh commit/worktree/output; no installs or runtime writes.
+
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
 User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,
