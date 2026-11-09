@@ -21,8 +21,8 @@ if [[ -n "${URBANING_DATA_ROOT:-}" ]]; then
 fi
 echo "OUTPUT: $OUT"
 echo 'Read-only frozen-RPN proposal-budget sweep; no fitting or validation access.'
-echo 'Samples twelve uniform TRAIN anchors from crossing1 across associated thermal cameras (up to 72 views).'
-echo 'Compares configured, 2000 and 4000 proposal limits at IoU .3/.5/.7.'
+echo 'Samples 48 uniform TRAIN anchors from crossing1 across associated thermal cameras (up to 288 views).'
+echo 'Compares configured and post-NMS 4000 proposal limits at IoU .3/.5/.7.'
 srun "$WORK/bin/urbaning-python.sh" -u scripts/urbaning_thermal_rpn_gate.py \
   --base "$BASE" --runtime "$RUNTIME" --model-dir "$MODEL" --output "$OUT" \
   --threads "$SLURM_CPUS_PER_TASK" \

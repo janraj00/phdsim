@@ -87,6 +87,8 @@ Heavy_Vehicle19.51% (8/41), Pedestrian11.11% (7/63), and 2Wheeler0/5. This is
 still weak localization; no model was fitted. Recommended next: expand the
 uniform TRAIN-only sample at fixed4000 proposals to better measure class
 coverage, and verify a separate thermal recording is available for evaluation.
+Prepared the expanded gate on48 uniform TRAIN anchors with only configured and
+post-NMS4000 settings; it also records which extracted sequences are present.
 If proposal recall remains low or no separate thermal eval recording exists,
 pause rather than train heads/RPN without a sound pilot.
 

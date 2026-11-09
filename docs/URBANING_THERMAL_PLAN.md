@@ -93,7 +93,9 @@ Heavy_Vehicle19.51% (8/41), Pedestrian11.11% (7/63), and 2Wheeler0/5. The
 increase is meaningful but leaves most GT without a proposal. The next diagnostic
 should use a larger uniform TRAIN-only sample at fixed4000, then confirm that a
 separate recording-level thermal evaluation source exists before considering any
-trainable-RPN pilot. No training is justified by this sweep alone.
+trainable-RPN pilot. Prepared an expanded read-only gate on48 uniform TRAIN
+anchors with configured and post-NMS4000 settings; it records which source
+sequences are extracted. No training is justified by the prior sweep alone.
 
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned

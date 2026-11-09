@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT/'src'))
 
 CLASSES = ('Vehicle', 'Heavy_Vehicle', '2Wheeler', 'Pedestrian')
 GATE_SEQUENCE = '20241126_0017_crossing1_00'
-SAMPLE_PER_SEQUENCE = 12
+SAMPLE_PER_SEQUENCE = 48
 IOU_THRESHOLDS = (.3, .5, .7)
 
 
@@ -85,6 +85,9 @@ def run(args):
         (output/folder).mkdir()
     root = find_data_root(args.base, args.data_root)
     print('THERMAL DATA ROOT', root, flush=True)
+    extracted = sorted(p.name for p in (root/'extracted').iterdir()
+                       if p.is_dir() and (p/'extraction.json').is_file())
+    print('THERMAL EXTRACTED SEQUENCES', json.dumps(extracted), flush=True)
     records, provenance = read_inputs(args.base, output/'loader', 200, 0)
     train = records['train']
     selected = []
@@ -107,7 +110,7 @@ def run(args):
     default_pre = int(rpn.pre_nms_topk[False])
     default_post = int(rpn.post_nms_topk[False])
     settings = [('configured', default_pre, default_post)]
-    settings += [(f'post-{budget}', max(default_pre, budget), budget) for budget in (2000, 4000)]
+    settings += [('post-4000', max(default_pre, 4000), 4000)]
     totals = {key: {c: {str(t): [0, 0] for t in IOU_THRESHOLDS} for c in range(4)}
               for key, _, _ in settings}
     torch.set_grad_enabled(False)
@@ -182,6 +185,7 @@ def run(args):
               'default_limits': {'pre_nms_topk': default_pre, 'post_nms_topk': default_post},
               'sweep_settings': [{'name': key, 'pre_nms_topk': pre, 'post_nms_topk': post}
                                  for key, pre, post in settings],
+              'extracted_sequences': extracted,
               'sample_per_sequence': SAMPLE_PER_SEQUENCE, 'sampled_frames': [r['key'] for r in selected],
               'data_root': str(root), 'train_provenance': provenance['train'],
               'metrics': metrics, 'macro_recall': macro, 'views': proposal_rows,
