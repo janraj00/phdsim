@@ -1,7 +1,48 @@
 # Thermal as an infrastructure observation
 
-Design only,2026-11-08. No thermal detector/fusion training is implemented or
-submitted by this change. The current RGB fine-tuning experiment stays separate.
+Thermal detector/fusion training remains unimplemented; the current RGB fitting
+stays separate.
+
+## Local label-projection audit (2026-11-08)
+
+A read-only audit on the locally available TRAIN sequence
+`20241126_0017_crossing1_00` found 1,200 associated thermal views (six cameras,
+200 anchors), with annotation labels on every anchor. Camera captures are
++8..+41 ms from their anchors (median +20 ms). After rectification, 3D labels
+projected with at least 12 pixels on each axis and at least 50% of their area
+inside the image gave `[21395, 959, 306, 2591]` positive per-view appearances
+for Vehicle/Heavy_Vehicle/2Wheeler/Pedestrian, and `[3365, 8, 33, 786]`
+near-plane-straddling per-view boxes to ignore. Counts duplicate the same object
+across cameras and time; they are support appearances, not unique objects.
+
+This verifies useful label coverage on one crossing1 TRAIN sequence only. It
+does not measure frozen-RPN proposal recall or detector performance and says
+nothing yet about crossing2 transfer. Thermal data availability at the Ares
+data root still needs confirmation. Before spending on training, run a sampled
+native frozen-RPN recall gate against projected thermal boxes. Stop if proposals
+rarely cover positives. If it passes, use a one-epoch, four-class native-head
+pilot, then compare thermal-only with fixed LiDAR-first fusion on the same
+development frames. Preserve the actual thermal capture offsets and make no
+independent-test claim.
+
+## Frozen-RPN gate prepared (2026-11-09)
+
+The desktop SSH environment could not resolve `ares.cyfronet.pl`, so the Ares
+filesystem could not be inspected here and no job was submitted. Prepared
+`scripts/urbaning_thermal_rpn_gate.py` plus
+`scripts/slurm/urbaning_thermal_rpn_gate.sbatch` to check the frozen official
+outdoor RPN on twelve uniform TRAIN anchors from the confirmed crossing1 sequence
+(up to72 camera views). It uses the existing immutable Car1 source packet for
+frame/GT bindings, raw associated thermal images and calibration, and the
+revised per-object near-plane ignore rule. It records per-class proposal recall
+at IoU .3/.5/.7 and native capture offsets; no weights are updated and no
+validation data is loaded. The fixed pass gates require at least five sampled
+positive GT boxes in every class, macro recall >=.25 at IoU .3 and >=.10 at IoU
+.5. These thresholds are a stop/go criterion for this pilot, not a benchmark
+result. Ares auto-detects the extracted source under the expected
+`data/` or `inputs/` roots; override with `URBANING_DATA_ROOT` if needed. If the
+gate fails, stop before training. If it passes, prepare a separate one-epoch
+training job with explicit thermal-only and LiDAR-first controls.
 
 ## Physical source and useful first comparison
 

@@ -1,8 +1,46 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-08**. This document summarizes the latest decisions in the
+Updated: **2026-11-09**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Thermal pilot: local projection audit (2026-11-08)
+
+User chose thermal as the next modality after the corrected RGB-head job
+21687491 completed. Its validation200 mAP@.5 was LiDAR21.5380%, RGB head1.5916%,
+initialized additive raw20.1284%, fine-tuned additive raw21.2219%, initialized
+LiDAR-first21.8953%, and fine-tuned LiDAR-first21.6007%. RGB head fitting is not
+a reliable path to a useful standalone detector; raw additive improves versus
+its initializer but remains below LiDAR, and LiDAR-first is effectively tied
+with LiDAR. This is development validation, not an independent test.
+
+A quick read-only audit of the locally available sequence
+`20241126_0017_crossing1_00` projected timestamped 3D annotations into all six
+rectified infrastructure thermal cameras. It found 1,200 associated thermal
+views (200 anchors x 6 cameras), annotations at all 200 anchors, and camera
+capture offsets from +8 to +41 ms (median +20 ms). With the RGB-head pilot's
+12-pixel minimum and >=50% in-image rule, positive projected box support was
+`[21395, 959, 306, 2591]` for Vehicle/Heavy_Vehicle/2Wheeler/Pedestrian. These
+are per-camera object appearances, with the same object counted in multiple
+views; they are not unique objects. Near-plane straddles flagged for ignore
+were `[3365, 8, 33, 786]` in class order. No thermal detector was trained.
+
+This audit covers only the locally available crossing1 TRAIN recording. It
+does not establish proposal recall, detection accuracy, or transfer to crossing2.
+Read-only SSH lookup from the desktop could not resolve the Ares host, so remote
+data availability is not confirmed and no Ares job was submitted. Prepared a
+cheap frozen-RPN gate at `scripts/urbaning_thermal_rpn_gate.py` and
+`scripts/slurm/urbaning_thermal_rpn_gate.sbatch`: twelve uniform anchors from
+the confirmed crossing1 TRAIN sequence, all associated thermal cameras (up to72
+views), with frozen official outdoor RPN and projected box recall. It requires
+at least five sampled positive GT boxes per class, then macro recall >=.25 for
+IoU.3 and >=.10 for IoU.5. It does no fitting and does not read validation. It
+auto-detects a data root containing the crossing1 extraction, or accepts
+`URBANING_DATA_ROOT`. Uses four CPUs/12GiB, one-hour
+scheduler ceiling. On pass, continue with a one-epoch head pilot; on poor recall,
+stop before training. Keep native capture offsets, per-object near-plane ignores,
+report class AP and GT/FP counts, and make no held-out claim. See
+[thermal plan](URBANING_THERMAL_PLAN.md).
 
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
