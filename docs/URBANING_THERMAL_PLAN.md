@@ -76,13 +76,15 @@ samples for a strong class claim), Pedestrian1.59% (1/63). The RGB-pretrained,
 frozen RPN misses most thermal GT boxes. Do not train only ROI heads on this
 proposal set. The result is not evidence that thermal itself is useless.
 
-Next low-cost diagnostic: sweep a larger proposal budget on the exact same
-sampled views and report per-class recall without changing weights. If a larger
+Next low-cost diagnostic is implemented in the same entry point: sweep the
+configured RPN test limits plus post-NMS budgets2,000 and4,000 (pre-NMS is raised
+to at least the selected budget) on the exact same sampled views. It reports
+per-class recall without changing weights or loading validation. If a larger
 budget recovers GT, evaluate that fixed budget on more TRAIN-only thermal views.
-If not, consider a trainable-RPN thermal pilot only after confirming a separate
-recording-level thermal validation set and checking actual RPN gradients/loss
-in a native startup gate. Do not reuse crossing1 frames for validation or claim
-generalization from this single local sequence.
+If recall stays low, consider a trainable-RPN pilot only after confirming a
+separate recording-level thermal validation set and checking actual RPN
+gradients/loss in a native startup gate. Do not reuse crossing1 frames for
+validation or claim generalization from this single local sequence.
 
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned

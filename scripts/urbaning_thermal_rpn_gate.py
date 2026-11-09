@@ -1,4 +1,4 @@
-"""Cheap frozen-RPN recall gate for projected UrbanIng thermal boxes."""
+"""Cheap frozen-RPN proposal-budget sweep for projected thermal boxes."""
 import argparse
 import importlib.util
 import json
@@ -99,7 +99,17 @@ def run(args):
     model = detector.model.eval()
     proposal_rows = []
     sequence_cache = {}
-    totals = {c: {str(t): [0, 0] for t in IOU_THRESHOLDS} for c in range(4)}
+    rpn = model.proposal_generator
+    if (not isinstance(getattr(rpn, 'pre_nms_topk', None), dict) or
+            not isinstance(getattr(rpn, 'post_nms_topk', None), dict) or False not in rpn.pre_nms_topk or
+            False not in rpn.post_nms_topk):
+        raise TypeError('Pinned RPN does not expose Detectron2 test proposal budgets')
+    default_pre = int(rpn.pre_nms_topk[False])
+    default_post = int(rpn.post_nms_topk[False])
+    settings = [('configured', default_pre, default_post)]
+    settings += [(f'post-{budget}', max(default_pre, budget), budget) for budget in (2000, 4000)]
+    totals = {key: {c: {str(t): [0, 0] for t in IOU_THRESHOLDS} for c in range(4)}
+              for key, _, _ in settings}
     torch.set_grad_enabled(False)
     for record in selected:
         sequence = record['sequence']
@@ -128,53 +138,61 @@ def run(args):
             inputs = detector.training_input(bgr, intrinsic, rows)
             batch = model.preprocess_image([inputs])
             features = model.backbone(batch.tensor)
-            proposals, _ = model.proposal_generator(batch, features, None)
-            proposal_boxes = proposals[0].proposal_boxes.tensor.detach().cpu().numpy()
             gt_boxes = inputs['instances'].gt_boxes.tensor.detach().cpu().numpy()
             gt_classes = inputs['instances'].gt_classes.detach().cpu().numpy()
             keep = gt_classes >= 0
-            recalls = proposal_recall(proposal_boxes, gt_boxes[keep])
             names = [CLASSES[int(c)] for c in gt_classes[keep]]
-            for j, name in enumerate(names):
-                class_id = CLASSES.index(name)
-                for threshold in IOU_THRESHOLDS:
-                    hit = recalls[str(threshold)][j]
-                    totals[class_id][str(threshold)][0] += hit
-                    totals[class_id][str(threshold)][1] += 1
+            by_budget = {}
+            for key, pre_nms, post_nms in settings:
+                rpn.pre_nms_topk[False] = pre_nms
+                rpn.post_nms_topk[False] = post_nms
+                proposals, _ = model.proposal_generator(batch, features, None)
+                proposal_boxes = proposals[0].proposal_boxes.tensor.detach().cpu().numpy()
+                recalls = proposal_recall(proposal_boxes, gt_boxes[keep])
+                for j, name in enumerate(names):
+                    class_id = CLASSES.index(name)
+                    for threshold in IOU_THRESHOLDS:
+                        hit = recalls[str(threshold)][j]
+                        totals[key][class_id][str(threshold)][0] += hit
+                        totals[key][class_id][str(threshold)][1] += 1
+                by_budget[key] = {'proposal_count': len(proposal_boxes),
+                                  'recall': {str(t): float(np.mean(v)) if v else None
+                                             for t, v in recalls.items()}}
+            rpn.pre_nms_topk[False] = default_pre
+            rpn.post_nms_topk[False] = default_post
             anchor_ms = record['native_association']['timestamp_ns']/1e6
             offset_ms = int(Path(filename).stem)-anchor_ms
             proposal_rows.append({'key': record['key'], 'stream': stream, 'offset_ms': offset_ms,
-                                  'positive_count': int(keep.sum()), 'proposal_count': len(proposal_boxes),
-                                  'recall': {str(t): float(np.mean(v)) if v else None
-                                             for t, v in recalls.items()}})
+                                  'positive_count': int(keep.sum()), 'budgets': by_budget})
             seen += 1
         print('THERMAL GATE FRAME', record['key'], 'usable_views', seen, flush=True)
     if not proposal_rows:
         raise ValueError('No positive thermal views reached frozen RPN gate')
-    metrics = {}
-    for class_id, name in enumerate(CLASSES):
-        metrics[name] = {threshold: {'hits': hit, 'gt': count,
-                         'recall': hit/count if count else None}
-                         for threshold, (hit, count) in totals[class_id].items()}
-    macro = {threshold: float(np.mean([metrics[n][threshold]['recall'] for n in CLASSES
-                                       if metrics[n][threshold]['recall'] is not None]))
-             for threshold in map(str, IOU_THRESHOLDS)}
-    # Frozen RPN boxes are the only localization candidates in this pilot.
-    # Proceed only when the RGB-pretrained RPN covers enough thermal GT to fit.
-    class_support_ok = all(totals[c]['0.5'][1] >= 5 for c in range(4))
-    passed = class_support_ok and macro['0.3'] >= .25 and macro['0.5'] >= .10
-    report = {'schema': 'phdsim-urbaning-thermal-frozen-rpn-gate-v1', 'passed': passed,
-              'decision_rule': {'min_gt_per_class': 5, 'macro_recall_iou_0.3_min': .25,
-                                'macro_recall_iou_0.5_min': .10},
+    metrics, macro = {}, {}
+    for key, _, _ in settings:
+        metrics[key] = {}
+        for class_id, name in enumerate(CLASSES):
+            metrics[key][name] = {threshold: {'hits': hit, 'gt': count,
+                                    'recall': hit/count if count else None}
+                                  for threshold, (hit, count) in totals[key][class_id].items()}
+        macro[key] = {threshold: float(np.mean([metrics[key][n][threshold]['recall'] for n in CLASSES
+                                                if metrics[key][n][threshold]['recall'] is not None]))
+                      for threshold in map(str, IOU_THRESHOLDS)}
+    report = {'schema': 'phdsim-urbaning-thermal-rpn-budget-sweep-v1',
+              'default_limits': {'pre_nms_topk': default_pre, 'post_nms_topk': default_post},
+              'sweep_settings': [{'name': key, 'pre_nms_topk': pre, 'post_nms_topk': post}
+                                 for key, pre, post in settings],
               'sample_per_sequence': SAMPLE_PER_SEQUENCE, 'sampled_frames': [r['key'] for r in selected],
               'data_root': str(root), 'train_provenance': provenance['train'],
               'metrics': metrics, 'macro_recall': macro, 'views': proposal_rows,
               'mean_abs_capture_offset_ms': float(np.mean([abs(r['offset_ms']) for r in proposal_rows]))}
-    (output/'rpn-gate.json').write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
-    print('THERMAL RPN RECALL', json.dumps({'macro': macro, 'per_class': metrics}, sort_keys=True), flush=True)
-    print('THERMAL RPN GATE', 'PASSED' if passed else 'STOP: frozen proposal coverage too low', flush=True)
+    (output/'rpn-budget-sweep.json').write_text(json.dumps(report, indent=2, allow_nan=False)+'\n')
+    for key in macro:
+        print('THERMAL RPN BUDGET', key, json.dumps({'macro': macro[key],
+              'per_class': metrics[key]}, sort_keys=True), flush=True)
+    print('THERMAL RPN BUDGET SWEEP DONE', flush=True)
     print('DONE:', output, flush=True)
-    return 0 if passed else 2
+    return 0
 
 
 def main():

@@ -72,10 +72,12 @@ Heavy_Vehicle12.20% (5/41),2Wheeler0% (0/5; small sample), Pedestrian1.59%
 (1/63). This shows the frozen RGB proposal generator does not transfer well to
 thermal. Do not train ROI heads while keeping the RPN frozen: they cannot
 recover objects absent from proposals. It does not show thermal itself is
-useless. Suggested next cheap diagnostic: increase RPN proposal budget on the
-same sampled views and measure recall before considering RPN fine-tuning. If
-recall stays low, a separate trainable-RPN pilot needs recording-level thermal
-validation and a native RPN loss/gradient gate.
+useless. The same script now performs a read-only proposal-budget sweep on
+these same sampled views: configured default, post-NMS 2,000 and 4,000, with
+pre-NMS increased as needed. It changes no weights, does not read validation,
+and writes `rpn-budget-sweep.json`. If recall stays low even at 4,000, a separate
+trainable-RPN pilot needs recording-level thermal validation and a native RPN
+loss/gradient gate.
 
 User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,
 2,341 skipped by near-plane geometry (97.5%), six had zero positive labels.
