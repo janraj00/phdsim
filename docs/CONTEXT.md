@@ -62,7 +62,7 @@ before thermal image inference on a missing local NumPy import in the
 vehicle/LiDAR transform helper. Added the import. Runtime activation is now
 confirmed in the job log; retry with a new worktree and output.
 
-## RGB geometry filter invalidated fine-tuning run (2026-11-08)
+## Thermal frozen-RPN results (2026-11-09)
 
 Gate21694685 completed its diagnostic and deliberately returned exit2 for
 `STOP` (not a code crash). On sampled crossing1 thermal views, frozen
@@ -78,6 +78,19 @@ pre-NMS increased as needed. It changes no weights, does not read validation,
 and writes `rpn-budget-sweep.json`. If recall stays low even at 4,000, a separate
 trainable-RPN pilot needs recording-level thermal validation and a native RPN
 loss/gradient gate.
+
+Budget sweep21694751 confirmed more test proposals recover additional thermal
+GT: macro recall rose from14.17/4.48/0.78% at IoU.3/.5/.7 configured default
+to22.05/9.47/2.89% with post-NMS4000. It remains just below the original stop
+thresholds. At post4000, IoU.5 per-class recall is Vehicle7.27% (44/605),
+Heavy_Vehicle19.51% (8/41), Pedestrian11.11% (7/63), and 2Wheeler0/5. This is
+still weak localization; no model was fitted. Recommended next: expand the
+uniform TRAIN-only sample at fixed4000 proposals to better measure class
+coverage, and verify a separate thermal recording is available for evaluation.
+If proposal recall remains low or no separate thermal eval recording exists,
+pause rather than train heads/RPN without a sound pilot.
+
+## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
 User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,
 2,341 skipped by near-plane geometry (97.5%), six had zero positive labels.

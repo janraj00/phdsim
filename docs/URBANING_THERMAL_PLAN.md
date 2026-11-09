@@ -86,6 +86,15 @@ separate recording-level thermal validation set and checking actual RPN
 gradients/loss in a native startup gate. Do not reuse crossing1 frames for
 validation or claim generalization from this single local sequence.
 
+Budget sweep21694751 raised macro recall from14.17/4.48/0.78% at IoU.3/.5/.7
+configured default to22.05/9.47/2.89% at post-NMS4000, still just below the
+fixed gates. At4000, IoU.5 recall was Vehicle7.27% (44/605),
+Heavy_Vehicle19.51% (8/41), Pedestrian11.11% (7/63), and 2Wheeler0/5. The
+increase is meaningful but leaves most GT without a proposal. The next diagnostic
+should use a larger uniform TRAIN-only sample at fixed4000, then confirm that a
+separate recording-level thermal evaluation source exists before considering any
+trainable-RPN pilot. No training is justified by this sweep alone.
+
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned
 RGB/thermal pairs. Use source camera calibration, vehicle pose and native capture
