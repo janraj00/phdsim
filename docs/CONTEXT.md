@@ -64,6 +64,19 @@ confirmed in the job log; retry with a new worktree and output.
 
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
+Gate21694685 completed its diagnostic and deliberately returned exit2 for
+`STOP` (not a code crash). On sampled crossing1 thermal views, frozen
+RGB-pretrained RPN macro recall was14.17% at IoU.3,4.48% at.5,0.78% at.7,
+below gates25%/10%. Per-class recall at IoU.5: Vehicle4.13% (25/605),
+Heavy_Vehicle12.20% (5/41),2Wheeler0% (0/5; small sample), Pedestrian1.59%
+(1/63). This shows the frozen RGB proposal generator does not transfer well to
+thermal. Do not train ROI heads while keeping the RPN frozen: they cannot
+recover objects absent from proposals. It does not show thermal itself is
+useless. Suggested next cheap diagnostic: increase RPN proposal budget on the
+same sampled views and measure recall before considering RPN fine-tuning. If
+recall stays low, a separate trainable-RPN pilot needs recording-level thermal
+validation and a native RPN loss/gradient gate.
+
 User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,
 2,341 skipped by near-plane geometry (97.5%), six had zero positive labels.
 Positive support was `[609,44,4,83]` for Vehicle/Heavy_Vehicle/2Wheeler/Pedestrian.

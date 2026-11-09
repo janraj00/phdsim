@@ -66,6 +66,24 @@ Keep its output and use a new worktree/output for the retry.
 
 ## Physical source and useful first comparison
 
+## Frozen RGB-RPN result (2026-11-09)
+
+Gate21694685 reached its planned diagnostic and returned status2 for STOP. On
+the sampled crossing1 thermal views, macro proposal recall was14.17% at IoU.3,
+4.48% at.5 and0.78% at.7 (required25% and10% at.3/.5). Per-class IoU.5:
+Vehicle4.13% (25/605), Heavy_Vehicle12.20% (5/41), 2Wheeler0% (0/5; too few
+samples for a strong class claim), Pedestrian1.59% (1/63). The RGB-pretrained,
+frozen RPN misses most thermal GT boxes. Do not train only ROI heads on this
+proposal set. The result is not evidence that thermal itself is useless.
+
+Next low-cost diagnostic: sweep a larger proposal budget on the exact same
+sampled views and report per-class recall without changing weights. If a larger
+budget recovers GT, evaluate that fixed budget on more TRAIN-only thermal views.
+If not, consider a trainable-RPN thermal pilot only after confirming a separate
+recording-level thermal validation set and checking actual RPN gradients/loss
+in a native startup gate. Do not reuse crossing1 frames for validation or claim
+generalization from this single local sequence.
+
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned
 RGB/thermal pairs. Use source camera calibration, vehicle pose and native capture
