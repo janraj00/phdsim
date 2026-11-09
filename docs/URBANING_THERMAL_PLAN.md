@@ -59,6 +59,11 @@ bootstrap for runtime21649159 and receives its path from Slurm. This performs no
 installation/build and does not modify the runtime. No thermal images were
 inferred in21694226; retry with a new worktree and output.
 
+Retry21694349 activated the verified runtime and found the Ares data root, then
+stopped before thermal image inference on a missing local NumPy import in the
+vehicle/LiDAR transform helper. Added that import; no model forward occurred.
+Keep its output and use a new worktree/output for the retry.
+
 ## Physical source and useful first comparison
 
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed

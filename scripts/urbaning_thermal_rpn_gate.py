@@ -42,6 +42,7 @@ def load_sequence(root, sequence, cache):
 
 
 def vehicle_lidar_to_global(directory, calibration, members):
+    import numpy as np
     state_name = members.get('vehicle1_state')
     if not state_name:
         raise ValueError('Thermal association is missing vehicle1_state')

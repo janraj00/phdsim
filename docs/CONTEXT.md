@@ -57,6 +57,11 @@ call the existing read-only `reuse()` bootstrap before model import, passing
 runtime21649159 from the Slurm script. No thermal image inference occurred.
 Retry with another fresh commit/worktree/output; no installs or runtime writes.
 
+Retry21694349 activated runtime21649159 and found the data root, then failed
+before thermal image inference on a missing local NumPy import in the
+vehicle/LiDAR transform helper. Added the import. Runtime activation is now
+confirmed in the job log; retry with a new worktree and output.
+
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
 User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,
