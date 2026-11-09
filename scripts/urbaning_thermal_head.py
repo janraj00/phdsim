@@ -48,8 +48,8 @@ def load_sequence(root, sequence, cache):
         directory = sequence_directory(root, sequence)
         calibration = json.loads((directory/'calibration.json').read_text())
         streams = sorted(k for k in calibration if k.endswith('_thermal_camera'))
-        if len(streams) != 6:
-            raise ValueError(f'Expected six thermal cameras in {sequence}; found {streams}')
+        if not streams:
+            raise ValueError(f'No calibrated thermal cameras in {sequence}')
         cache[sequence] = {'directory': directory, 'calibration': calibration,
                            'streams': streams, 'vehicle_lidar_to_global': None}
     return cache[sequence]
@@ -175,10 +175,12 @@ def preflight(train, root, sequence_cache, camera_cache, projected_targets):
         seq = load_sequence(root, record['sequence'], sequence_cache)
         members = record['native_association']['members']
         transforms = transforms_for_record(seq, members)
-        if len(transforms) != 6:
-            raise ValueError('Missing a thermal camera association: '+record['key'])
+        if not transforms:
+            raise ValueError('No associated thermal cameras: '+record['key'])
         for stream in seq['streams']:
-            filename = members[stream]
+            filename = members.get(stream)
+            if not filename:
+                continue
             intrinsic, (height, width) = camera_model(seq, stream, filename, camera_cache)
             rows2d = projected_targets(record['gt_boxes'], record['gt_labels'], transforms[stream],
                                        intrinsic, width, height)
@@ -278,7 +280,10 @@ def predict_thermal(detector, record, root, sequence_cache, camera_cache, uprigh
     members = record['native_association']['members']
     transforms = transforms_for_record(seq, members)
     boxes, scores = [], []
-    for stream in seq['streams']:
+    associated_streams = [stream for stream in seq['streams'] if members.get(stream)]
+    if not associated_streams:
+        raise ValueError('No associated thermal cameras for prediction: '+record['key'])
+    for stream in associated_streams:
         filename = members.get(stream)
         if not filename:
             continue
@@ -286,7 +291,7 @@ def predict_thermal(detector, record, root, sequence_cache, camera_cache, uprigh
         pred = detector.predict(image, intrinsic)
         boxes.append(upright_boxes(pred['centers'], pred['dimensions'], pred['rotations'], transforms[stream]))
         scores.append(np.c_[pred['scores'], pred['classes']+1])
-    if len(boxes) != 6:
+    if len(boxes) != len(associated_streams):
         raise ValueError('Incomplete thermal prediction set for '+record['key'])
     all_boxes, all_scores = np.concatenate(boxes), np.concatenate(scores)
     keep = classwise_nms(all_boxes, all_scores, .2)

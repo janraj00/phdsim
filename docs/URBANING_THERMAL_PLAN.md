@@ -120,8 +120,14 @@ prediction parity and discards its updates. It inventories per-camera projected
 support and fails before fitting if any class has fewer than20 positive views.
 The experiment compares thermal-only and additive raw/LiDAR-first variants,
 reproduces source LiDAR AP and replays saved predictions. Validation is
-previously inspected development data, not an independent test; no submission
-has been made yet.
+previously inspected development data, not an independent test.
+
+Submission21696415 failed during the TRAIN inventory, before model construction
+or fitting. The code incorrectly required six calibrated thermal streams in
+every sequence; crossing2 has five, while crossing1 has six. The pilot now uses
+all calibrated streams per sequence and only streams associated with each
+individual anchor. Re-submit from the follow-up commit with a fresh worktree and
+output; preserve the failed output for provenance.
 
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned

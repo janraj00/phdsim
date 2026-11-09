@@ -97,14 +97,20 @@ At post-NMS4000 (pre-NMS at least4000), macro proposal recall was26.99% at
 IoU.3,14.15% at.5 and3.97% at.7, above the fixed aggregate .3/.5 stop gates.
 IoU.5 per-class recall: Vehicle8.44% (213/2523), Heavy_Vehicle26.78% (49/183),
 2Wheeler6.90% (2/29), Pedestrian14.48% (42/290). This remains weak proposal
-coverage and does not establish detector benefit. Prepared, but not submitted,
-one fixed TRAIN epoch of native thermal ROI-head fitting with frozen backbone,
+coverage and does not establish detector benefit. Prepared one fixed TRAIN
+epoch of native thermal ROI-head fitting with frozen backbone,
 FPN and RPN at the 4000 proposal budget. TRAIN400 uses only
 `20241126_0001_crossing2_00` and `20241126_0017_crossing1_00`; validation200 is
 `20241126_0004_crossing2_00` and is loaded after checkpoint freeze. No crossing3
 or independent-test claim. See `scripts/urbaning_thermal_head.py`,
 `scripts/slurm/urbaning_thermal_head.sbatch`, and
 `docs/URBANING_THERMAL_PLAN.md`.
+
+Submission21696415 failed after4m17s in preflight before model construction or
+training. The pilot incorrectly required six thermal streams in every sequence;
+crossing2 calibration has five. The follow-up now uses the actual calibrated
+stream list for each sequence and the associated views per anchor. Failed output
+is preserved; use a fresh worktree and job output for retry.
 
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
