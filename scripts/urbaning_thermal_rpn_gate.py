@@ -2,8 +2,12 @@
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT/'src'))
 
 from phdsim.datasets.urbaning.archive import sequence_directory
 from phdsim.datasets.urbaning.geometry import rectified_image

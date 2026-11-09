@@ -20,7 +20,7 @@ if [[ -n "${URBANING_DATA_ROOT:-}" ]]; then
 fi
 echo "OUTPUT: $OUT"
 echo 'Read-only thermal data and frozen-RPN recall gate; no fitting or validation access.'
-echo 'Samples two TRAIN frames per recording across associated infrastructure thermal cameras.'
+echo 'Samples twelve uniform TRAIN anchors from crossing1 across associated thermal cameras (up to 72 views).'
 echo 'Stops unless frozen RPN recall reaches the predeclared IoU .3/.5 gates.'
 srun "$WORK/bin/urbaning-python.sh" -u scripts/urbaning_thermal_rpn_gate.py \
   --base "$BASE" --model-dir "$MODEL" --output "$OUT" --threads "$SLURM_CPUS_PER_TASK" \

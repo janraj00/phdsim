@@ -42,6 +42,14 @@ stop before training. Keep native capture offsets, per-object near-plane ignores
 report class AP and GT/FP counts, and make no held-out claim. See
 [thermal plan](URBANING_THERMAL_PLAN.md).
 
+First gate submission21694006 failed after10s before data access because its
+entry point did not add this checkout's `src/` to `sys.path`; the runtime found
+an older installed `phdsim` package without the RGB fine-tuning reader. Fixed
+the entry point to prioritize its checkout source and corrected the Slurm
+progress line to describe twelve anchors from the single confirmed crossing1
+sequence. Retry with the follow-up commit and a fresh output/job ID. No thermal
+data/model processing occurred in21694006.
+
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
 User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,

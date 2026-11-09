@@ -44,6 +44,13 @@ result. Ares auto-detects the extracted source under the expected
 gate fails, stop before training. If it passes, prepare a separate one-epoch
 training job with explicit thermal-only and LiDAR-first controls.
 
+First submission21694006 failed in10s before data access: the entry point did
+not prepend this checkout's `src/`, so the runtime imported an older installed
+`phdsim` package and could not find the RGB fine-tuning reader. The retry
+entry point now adds its own checkout source first. The startup echo now also
+matches the actual twelve-anchor, one-sequence sample. No model/data processing
+occurred in the failed job; retry with fresh output.
+
 ## Physical source and useful first comparison
 
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
