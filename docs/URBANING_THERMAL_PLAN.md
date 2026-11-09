@@ -129,6 +129,21 @@ all calibrated streams per sequence and only streams associated with each
 individual anchor. Re-submit from the follow-up commit with a fresh worktree and
 output; preserve the failed output for provenance.
 
+## Frozen-RPN thermal ROI-head pilot (2026-11-09)
+
+Pilot21696510 completed its fixed one-epoch fit and evaluation. Thermal-only
+macro BEV AP@.5 was0.0000% on the inspected development validation; the trained
+head reached only0.0001% on TRAIN. Initialized additive raw was21.2900% on
+validation versus LiDAR21.5380%. After fitting, additive raw was21.5221%
+(-0.0159pp vs LiDAR), and LiDAR-first was21.5409% (+0.0029pp). Thus this
+frozen-RPN / ROI-head setup produced no useful standalone thermal detector and
+no measurable additive benefit. The tiny LiDAR-first difference is effectively
+a tie, not evidence of improvement. Keep the pilot as a negative development
+result; do not spend another epoch on the same frozen-RPN setup. Per-class AP
+and TP/FP/GT from the archive still need inspection before diagnosing whether
+proposal coverage or classification/ranking is the dominant failure. The
+validation recording was previously inspected and is not an independent test.
+
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned
 RGB/thermal pairs. Use source camera calibration, vehicle pose and native capture

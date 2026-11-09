@@ -112,6 +112,16 @@ crossing2 calibration has five. The follow-up now uses the actual calibrated
 stream list for each sequence and the associated views per anchor. Failed output
 is preserved; use a fresh worktree and job output for retry.
 
+Pilot21696510 completed. Thermal-only mAP@.5 was0.0000% on development
+validation and0.0001% on TRAIN after one epoch. Validation LiDAR AP was21.5380%;
+fine-tuned additive raw was21.5221% (-0.0159pp) and LiDAR-first21.5409%
+(+0.0029pp), effectively unchanged. The frozen-RPN thermal ROI-head pilot
+therefore gives no demonstrated thermal gain. Do not repeat this same fitting
+setup. Per-class AP and TP/FP/GT still need reading from the result archive
+before identifying the failure mechanism. Validation is inspected development
+data, not an independent test. The archive is
+`runs/urbaning-thermal-head-21696510/urbaning-thermal-head-pilot.zip` on Ares.
+
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)
 
 User queried final run21685167 `train-inventory.json`: 2,400 Car1 camera views,
