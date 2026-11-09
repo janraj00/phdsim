@@ -115,11 +115,15 @@ is preserved; use a fresh worktree and job output for retry.
 Pilot21696510 completed. Thermal-only mAP@.5 was0.0000% on development
 validation and0.0001% on TRAIN after one epoch. Validation LiDAR AP was21.5380%;
 fine-tuned additive raw was21.5221% (-0.0159pp) and LiDAR-first21.5409%
-(+0.0029pp), effectively unchanged. The frozen-RPN thermal ROI-head pilot
-therefore gives no demonstrated thermal gain. Do not repeat this same fitting
-setup. Per-class AP and TP/FP/GT still need reading from the result archive
-before identifying the failure mechanism. Validation is inspected development
-data, not an independent test. The archive is
+(+0.0029pp), effectively unchanged. Per-class counters show why: standalone
+thermal yielded17 Vehicle TPs, zero TPs in other classes, and57,151 FPs on
+validation. Fine-tuned additive raw yielded6,856 TPs vs6,851 for LiDAR, but
+63,399 FPs vs7,027. LiDAR-first has the same TP/FP counts as raw fusion; it
+protects ranking, not precision. On TRAIN, additive raw adds13 Vehicle TPs and
+120,715 FPs over LiDAR. No useful tradeoff. Do not repeat this frozen-RPN
+ROI-head fit. This is a negative result for the tested detector/fusion design,
+not for thermal sensing in general. Validation is inspected development data,
+not an independent test. The archive is
 `runs/urbaning-thermal-head-21696510/urbaning-thermal-head-pilot.zip` on Ares.
 
 ## RGB geometry filter invalidated fine-tuning run (2026-11-08)

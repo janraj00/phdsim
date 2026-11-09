@@ -139,10 +139,19 @@ validation versus LiDAR21.5380%. After fitting, additive raw was21.5221%
 frozen-RPN / ROI-head setup produced no useful standalone thermal detector and
 no measurable additive benefit. The tiny LiDAR-first difference is effectively
 a tie, not evidence of improvement. Keep the pilot as a negative development
-result; do not spend another epoch on the same frozen-RPN setup. Per-class AP
-and TP/FP/GT from the archive still need inspection before diagnosing whether
-proposal coverage or classification/ranking is the dominant failure. The
-validation recording was previously inspected and is not an independent test.
+result; do not spend another epoch on the same frozen-RPN setup.
+
+Per-class counters explain the result. On validation, standalone fine-tuned
+thermal yielded only17 Vehicle TPs and zero TPs in the other classes, against
+57,151 FPs total. Fine-tuned additive raw yielded6,856 TPs versus6,851 for
+LiDAR alone, but63,399 FPs versus7,027 (+56,372 FPs). LiDAR-first has the same
+TP/FP counts as raw fusion; it only protects score ordering, so its21.5409% AP
+does not mean the thermal boxes were harmless or useful. On TRAIN, additive raw
+added13 Vehicle TPs and roughly120,715 FPs over the LiDAR counters. The pattern
+is not a useful recall/precision tradeoff. This is a failure of the tested
+thermal 3D detector/fusion setup, not a general conclusion about thermal
+sensing. The validation recording was previously inspected and is not an
+independent test.
 
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned
