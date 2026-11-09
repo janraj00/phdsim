@@ -97,6 +97,32 @@ trainable-RPN pilot. Prepared an expanded read-only gate on48 uniform TRAIN
 anchors with configured and post-NMS4000 settings; it records which source
 sequences are extracted. No training is justified by the prior sweep alone.
 
+The expanded TRAIN-only sweep21694761 covered48 uniform anchors across ten
+declared TRAIN recordings (480 GT instances overall). At configured proposals,
+macro proposal recall was17.33% / 7.88% / 2.12% at IoU.3/.5/.7. With pre-NMS at
+least4000 and post-NMS4000 it was26.99% / 14.15% / 3.97%, passing the
+predeclared aggregate .3/.5 stop thresholds. At IoU.5, recall was Vehicle8.44%
+(213/2523), Heavy_Vehicle26.78% (49/183), 2Wheeler6.90% (2/29), and
+Pedestrian14.48% (42/290). Coverage remains weak, especially for Vehicle and
+2Wheeler; this permits a fixed-budget pilot, not a claim that thermal detection
+helps.
+
+Prepared `scripts/urbaning_thermal_head.py` and
+`scripts/slurm/urbaning_thermal_head.sbatch` for one fixed epoch of four-class
+native ROI-head fitting, with backbone/FPN/RPN frozen and test-time post-NMS
+budget4000. TRAIN uses400 anchors across
+`20241126_0001_crossing2_00` and `20241126_0017_crossing1_00` (up to2400 thermal
+views); development validation is200 anchors from
+`20241126_0004_crossing2_00`, loaded only after the final checkpoint is frozen.
+No crossing3 data is used. The startup gate checks positive depth/classification
+and empty-label background gradients, frozen-state stability, checkpoint
+prediction parity and discards its updates. It inventories per-camera projected
+support and fails before fitting if any class has fewer than20 positive views.
+The experiment compares thermal-only and additive raw/LiDAR-first variants,
+reproduces source LiDAR AP and replays saved predictions. Validation is
+previously inspected development data, not an independent test; no submission
+has been made yet.
+
 UrbanIng vehicles carry RGB cameras and LiDAR; thermal cameras are on fixed
 infrastructure. Thermal and vehicle RGB therefore do not form pixel-aligned
 RGB/thermal pairs. Use source camera calibration, vehicle pose and native capture
