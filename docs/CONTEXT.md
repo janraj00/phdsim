@@ -4,6 +4,50 @@ Updated: **2026-11-07**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
 
+## Independent RGB3D late-fusion pilot prepared (2026-11-07)
+
+Ares21649159 verified the private Cube R-CNN CPU model, then failed after the
+first RGB prediction at the extrinsic determinant guard. Code review of pinned
+upstream d5766e7 shows corrected E=cTg*gTl*R3*R1, with an explicit handedness
+reflection. Initial det+1-only validation was wrong for this basis. Corrected
+to orthogonal det+/-1 without changing any calibration, scaling, thresholds or
+class mapping; reject scale/shear and export all48 calibration diagnostics
+before model creation. Native matrix values remain to be read on retry.
+Seven focused tests plus a49-official-cuboid reflected-center roundtrip pass.
+Added read-only completed-runtime reuse for21649159: preserve failed output,
+create new job-ID output, no compilation/install/download or source runtime
+writes. Plot caches stay in new output, Python bytecode writes disabled on
+reuse. Native corrected pilot has not run.
+
+User questioned the feature adapter and selected independent RGB detection plus
+late fusion. Prepared a separate frozen official Cube R-CNN DLA34/Omni3D CPU
+pilot:8 fixed TRAIN frames, six Car1 cameras each; no fitting, validation,
+crossing3, new LiDAR inference or acquisition. Use actual K and reviewed camera
+extrinsics, export raw optical cuboids, derive explicitly upright Car1 boxes
+from predicted center/dimensions/length-axis yaw. Class mapping is documented;
+retain all GT even for categories with no exact RGB counterpart. Union detections
+and fixed classwise BEV NMS .2, with original LiDAR and LiDAR-NMS-only controls.
+Raw scores are not cross-model calibrated. Export48 projection images/eight BEV
+comparisons/raw predictions and class AP in both original ordering modes.
+
+Private CPU runtime builds pinned Detectron2/PyTorch3D and adds torchvision,
+without mutating the shared venv; official model/config/category hashes checked.
+Eight TRAIN frames are a technical diagnostic, not a held-out modality ranking.
+Four focused tests passed, including synthetic48-camera/eight-frame export.
+Actual official-weight Cube R-CNN CPU inference on an upstream demo image
+returned49 finite3D detections; that is a startup check, not native UrbanIng
+accuracy or an Ares ETA. Native Ares execution has not run. See
+[RGB3D late-fusion pilot](URBANING_RGB3D_LATE.md).
+
+The completed frozen adapter TRAIN-eval ZIP has now been read locally and CRC
+checked. Three-seed means: original/LiDAR-adapter/RGB-adapter TRAIN400
+24.3129/31.5907/34.0658%; validation200 21.6500/18.0014/17.6987%.
+RGB-minus-LiDAR validation deltas -.6918/-.7340/+.5175pp, not negative in all
+seeds. Most LiDAR-adapter macro loss is Heavy_Vehicle; RGB recovers some of it
+but worsens2Wheeler on average. TRAIN gains occur on both original recordings;
+this supports a generalization gap, not a unique causal explanation. Historical
+partial progress notes below are superseded by this completed result.
+
 ## Frozen final-model TRAIN/validation diagnosis prepared (2026-11-07)
 
 User supplied validation200 results for completed seeds0/1 of controlled run:
