@@ -1,8 +1,82 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-03**. This document summarizes the latest decisions in the
+Updated: **2026-11-04**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Conditional gap diagnostic completed (2026-11-04)
+
+No fitting or crossing3 payload access. A post-hoc Car2 near (<40m)/far split,
+overlap-weighted within GT-class / Car1-distance / empty-low-high-score strata,
+retains the recovery association in both training recordings and validation:
+70.91% vs 29.37%, 68.89% vs 14.97%, and 50.78% vs 13.75%, respectively.
+GT class is an offline diagnostic variable, never a runtime feature of a missed
+object. These are coarse descriptive adjustments, not causal estimates or
+confidence intervals. Validation common support covers 6698/8086 misses.
+
+Only 2741/71196 **empty detection cells (3.85%)** contain a missed GT, despite
+those cells holding **50.63% of all missed appearances**. This distinguishes
+gap-localization risk from source recoverability conditional on a miss. Next
+proposed pilot separates those questions, using GT for targets only, and checks
+geometry-only/local-only/nonlinear-combined variants on development data.
+No new spatial learner has been fitted or validated.
+
+## Descriptive gap analysis completed (2026-11-04)
+
+User requested characterizing recoverable missing information and a complete
+mAP/request/savings/loss table. Full-1400 results are now consolidated, including
+an offline replay of the historical one-random-peer rule (100 seeds):
+**31.7038% mAP / 1311 requests**. Entropy subsets .5/.7 reproduces ALWAYS exactly.
+No fitting or detector inference; NumPy 1.26.4 preserves confidence-tie parity.
+
+Separate exploratory **validation-only** diagnostics on 200 crossing2 frames:
+14937 GT appearances, 8086 Car1 misses, 4283 recoverable by at least one feasible
+configuration (52.97%). 4094 misses (50.63%) fall in empty Car1-detection cells.
+Car2 recovery conditional on a miss drops from 474/743 (63.80%) within 20m of
+Car2 to 86/2489 (3.46%) beyond 80m, using cell-center distances. This is an
+unadjusted association in one already-inspected recording, not a causal result
+or runtime gap probability. Empty cells do not establish visibility/occlusion.
+On the same 134 both-available frames, Car2 recovers 477 appearances not
+recovered by Infra, and joint recovers 146 missed by both singles. Adding Car2
+to Infra also loses 235 existing matches. No corrected spatial model trained.
+See [gap diagnostics](URBANING_GAP_DIAGNOSTICS.md) for definitions, scope and
+the proposed next conditional analysis.
+
+## Frozen regional/tree full replay completed (2026-11-03)
+
+User requested the unchanged regional and tree policies on the full 1400-frame
+crossing3 inventory. The new runner reuses all completed prediction/pose caches,
+requires exact frozen input hashes and reproduces previous baseline/policy AP
+in both ordering modes. No detector, fitting, package installs or shared venv
+changes. **Ares job 21578375 completed in 6m24s, exit 0.** Uploaded result
+ZIP SHA256 `e7070e7bfc4743a7bba90310ce3a39ba893281c62c6f7c0e2a05c6c56472e802`,
+3,175,911 bytes. Hash/CRC, 1400 payload bindings and both-order replay parity
+of all eight policies passed using the portable statistics.
+
+Full-test global mAP@.5 / requests: regional **32.3282% / 1401** (31.09%
+request saving versus ALWAYS), tree **32.5766% / 1488** (26.81%), ALWAYS
+**33.7102% / 2033**. Both are higher quality and lower cost than prior
+GainGeometry **32.2393% / 1533**. Pure independent random p=.75 averages
+**31.4119% / 1523.43**. Exact-budget controls average **31.9546% / 1401** and
+**32.2086% / 1488**: advantages .3736pp and .3681pp, above all 100 draws.
+This is randomization evidence on five already-inspected recording groups,
+not proof of generalization or a recording-level significance test.
+
+Tree always queries available Infra, and adds Car2 in 177/722 both-available
+frames; it never abstains when a peer exists. An explicitly **post-hoc** control
+with Infra priority and random timing of extra Car2, at equal total budgets,
+averages **32.1277% at 1401** / **32.3434% at 1488** over seeds 0–99. Regional
+and tree retain modest **.2006pp/.2332pp** advantages. Exact budgets are borrowed
+from policy outcomes; this is an offline diagnostic, not a deployable method.
+Both policies lose pedestrian AP versus Infra-only, and mean F1 is slightly
+below the original budget-random means. Keep these limitations alongside mAP.
+
+Pure independent random is a main comparison, not hidden behind model-conditioned
+controls. Predeclared p=.5/.75/.9 with seeds 0–99; matched budget/schedule remain
+secondary. Primary: global-sort four-class BEV mAP@.5 plus requests/savings.
+The regional model retains its known spatial pooling limitation and penalty 8;
+the tree retains F1 cost .05. Do not tune either on crossing3, which has already
+been inspected. See [full frozen replay](URBANING_FROZEN_FULL.md).
 
 ## AP measurement completion verified (2026-11-03)
 
