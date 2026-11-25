@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f3f4ef">
+  <title>SCOUT · Odtwarzacz misji</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./viewer.css">
+</head>
+<body>
+  <header class="top"><div class="top-inner">
+    <div class="brand"><span class="logo" aria-hidden="true"><i></i></span>SCOUT</div>
+    <span class="product">Odtwarzacz misji</span>
+    <div class="sources">
+      <select id="source" aria-label="Źródło danych">
+        <option value="semantic.json">Mapa klas terenu</option><option value="mission.json">Mapa wysokości</option>
+      </select>
+      <button id="open">Otwórz JSON</button><input type="file" id="file" accept=".json,application/json" hidden>
+    </div>
+  </div></header>
+  <main>
+    <div id="notice" role="status">Otwórz wizualizator w przeglądarce pod adresem lokalnego serwera.</div>
+    <div id="workspace" hidden>
+      <header class="mission-head">
+        <div><p class="overline">Przebieg misji</p><h1 id="title"></h1></div>
+        <p id="metadata" class="mono"></p>
+      </header>
+      <div class="layout">
+        <section class="map-card" aria-label="Mapa i odtwarzanie">
+          <div class="map-tools"><label for="layer">Warstwa</label><select id="layer"></select>
+            <label class="ref"><input type="checkbox" id="reference"> Referencja offline</label>
+          </div>
+          <div class="plot">
+            <canvas id="map" aria-label="Mapa terenu z pozycjami i celami robotów"></canvas>
+            <output id="inspect" hidden></output>
+          </div>
+          <div class="scale" id="scale" aria-label="Skala warstwy"></div>
+          <div class="transport">
+            <div class="time-head"><div><span class="overline">Czas symulacji</span> <strong id="tick"></strong></div><span class="mono" id="frame-number"></span></div>
+            <input type="range" id="seek" min="0" step="1" aria-label="Wybierz krok symulacji">
+            <div class="play-row">
+              <button class="icon" id="first" aria-label="Pierwszy krok" title="Pierwszy krok">|◀</button>
+              <button class="icon" id="prev" aria-label="Poprzedni krok" title="Poprzedni krok (←)">◀</button>
+              <button class="play" id="play"></button>
+              <button class="icon" id="next" aria-label="Następny krok" title="Następny krok (→)">▶</button>
+              <button class="icon" id="last" aria-label="Ostatni krok" title="Ostatni krok">▶|</button>
+              <select id="speed" aria-label="Tempo odtwarzania" title="Tempo odtwarzania"><option value="2">0,5×</option><option selected value="1">1×</option><option value="0.5">2×</option><option value="0.25">4×</option></select>
+            </div>
+          </div>
+        </section>
+        <aside>
+          <section class="panel"><div class="section-head"><h2>Roboty</h2><span class="counter" id="fleet-count"></span></div><div id="fleet"></div></section>
+          <section class="panel"><div class="section-head"><h2>Pomiary w tej chwili</h2><span class="counter" id="capture-count"></span></div><div id="events"></div></section>
+          <section class="panel"><div class="section-head"><h2>Oznaczenia mapy</h2></div>
+            <div class="key"><span class="key-dot"></span>Potwierdzona pozycja</div>
+            <label class="key"><span class="key-line"></span>Historia pozycji<input id="trails" type="checkbox" checked></label>
+            <label class="key"><span class="key-arrow"></span>Cel i kierunek planu<input id="plans" type="checkbox" checked></label>
+            <label class="key"><span class="key-box"></span>Zasięgi pomiarów<input id="footprints" type="checkbox" checked></label>
+            <p class="key-note">Obrys przerywany oznacza planowany pomiar. Kreskowanie oznacza pomiar ukończony w wybranej chwili.</p>
+          </section>
+          <details class="panel" id="traffic"><summary>Komunikacja</summary><p id="message-status"></p><pre id="messages" hidden></pre></details>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="./viewer.mjs"></script>
+</body></html>

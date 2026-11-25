@@ -14,11 +14,17 @@ def main(argv=None):
         from .presence import main as presence_main
         return presence_main(arguments)
     parser = ArgumentParser(prog='phdsim', description='Selective acquisition of existing peer observations.')
-    parser.add_argument('workflow', choices=('pstnet', 'presence', 'urbaning'),
-                        help='pstnet: segmentation; presence: classification; urbaning: source inspection')
+    parser.add_argument('workflow', choices=('pstnet', 'presence', 'urbaning', 'scout', 'scout-elevation', 'scout-map'),
+                        help='Select a perception workflow or a synthetic SCOUT experiment')
     parser.add_argument('arguments', nargs=REMAINDER, help='Workflow arguments; use <workflow> --help')
     parsed = parser.parse_args(arguments)
-    if parsed.workflow == 'pstnet':
+    if parsed.workflow == 'scout':
+        from .scout import main as workflow_main
+    elif parsed.workflow == 'scout-map':
+        from .scout_map import main as workflow_main
+    elif parsed.workflow == 'scout-elevation':
+        from .scout_elevation import main as workflow_main
+    elif parsed.workflow == 'pstnet':
         from .pstnet import main as workflow_main
     elif parsed.workflow == 'urbaning':
         from .urbaning import main as workflow_main

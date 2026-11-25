@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="pl" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SCOUT · Mission Studio</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./studio.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="12 2 21 7 21 17 12 22 3 17 3 7"/>
+            <polyline points="3 7 12 12 21 7"/>
+            <line x1="12" y1="12" x2="12" y2="22"/>
+          </svg>
+        </span>
+        <div>
+          <span class="brand-name">SCOUT</span>
+          <span class="brand-sub">Mission Studio</span>
+        </div>
+      </div>
+
+      <div class="mission-picker">
+        <select id="mission-select" aria-label="Wybierz zapis misji"></select>
+        <button id="btn-open" class="btn-secondary" title="Otwórz lokalny plik scout-replay-v1 JSON">Otwórz JSON</button>
+        <input id="file-input" type="file" accept=".json,application/json" hidden>
+      </div>
+
+      <div class="topbar-right">
+        <div class="seg" role="group" aria-label="Tryb widoku">
+          <button id="mode-2d" class="seg-btn" data-view="2d">2D Mapa</button>
+          <button id="mode-3d" class="seg-btn active" data-view="3d">3D Teren</button>
+        </div>
+        <button id="btn-theme" class="btn-icon" title="Przełącz motyw ciemny / jasny" aria-label="Przełącz motyw">◐</button>
+      </div>
+    </header>
+
+    <div id="notice" class="notice" role="status" hidden></div>
+
+    <div class="main-grid">
+      <div class="center-col">
+        <section class="viewport-wrap" id="viewport-wrap" aria-label="Widok misji">
+          <canvas id="canvas-2d" class="stage-canvas" hidden></canvas>
+          <canvas id="canvas-3d" class="stage-canvas"></canvas>
+          <canvas id="canvas-hud" class="stage-canvas hud-canvas"></canvas>
+
+          <!-- Top-left floating map/layer controls -->
+          <div class="hud-bar hud-top-left">
+            <select id="layer-select" aria-label="Warstwa mapy"></select>
+            <div class="seg seg-sm" id="compare-seg" role="group" aria-label="Tryb porównania">
+              <button class="seg-btn active" data-cmp="estimate">Estymacja</button>
+              <button class="seg-btn" data-cmp="reference">Referencja</button>
+              <button class="seg-btn" data-cmp="split">Kurtyna</button>
+              <button class="seg-btn" data-cmp="error">Błędy</button>
+            </div>
+            <label class="chip-toggle" id="unc-wrap" title="Przyciemnij obszary o niskiej pewności">
+              <input type="checkbox" id="opt-uncertainty">
+              <span>Niepewność</span>
+            </label>
+            <div class="split-ctrl" id="split-ctrl" hidden>
+              <span>Kurtyna</span>
+              <input type="range" id="split-range" min="0.05" max="0.95" step="0.005" value="0.5">
+            </div>
+          </div>
+
+          <!-- Top-right floating camera / zoom controls -->
+          <div class="hud-bar hud-top-right">
+            <div id="controls-3d" class="cam-group">
+              <button class="btn-mini" data-cam="iso">Izo</button>
+              <button class="btn-mini" data-cam="top">Góra</button>
+              <button class="btn-mini" data-cam="low">Przelot</button>
+              <label class="exag-ctrl" title="Skala reliefu pionowego terenu">
+                <span>Relief</span>
+                <input type="range" id="relief-range" min="0" max="2.5" step="0.1" value="1.0">
+              </label>
+            </div>
+            <div id="controls-2d" class="cam-group" hidden>
+              <button class="btn-mini" id="zoom-in" title="Przybliż">+</button>
+              <button class="btn-mini" id="zoom-out" title="Oddal">−</button>
+              <button class="btn-mini" id="zoom-fit" title="Dopasuj widok">Dopasuj</button>
+            </div>
+          </div>
+
+          <!-- Bottom-left legend & live hover cell inspector -->
+          <div class="hud-bottom-left">
+            <div class="inspector-pill" id="cell-inspector" hidden></div>
+            <div class="legend-bar" id="legend-bar"></div>
+          </div>
+
+          <!-- Bottom-right overlay switches -->
+          <div class="hud-bar hud-bottom-right">
+            <label class="chip-toggle"><input type="checkbox" id="opt-trails" checked><span>Ślady</span></label>
+            <label class="chip-toggle"><input type="checkbox" id="opt-plans" checked><span>Plany</span></label>
+            <label class="chip-toggle"><input type="checkbox" id="opt-footprints" checked><span>Stożki</span></label>
+            <label class="chip-toggle"><input type="checkbox" id="opt-grid" checked><span>Siatka</span></label>
+            <label class="chip-toggle" title="Płynna interpolacja ruchu robotów między krokami"><input type="checkbox" id="opt-smooth" checked><span>Płynny ruch</span></label>
+          </div>
+        </section>
+
+        <!-- Bottom Playback & Analytics Dock -->
+        <section class="dock" id="dock" aria-label="Sterowanie czasem i wykresy">
+          <div class="transport-bar">
+            <div class="transport-btns">
+              <button class="btn-icon" id="btn-first" title="Początek">|◀</button>
+              <button class="btn-icon" id="btn-prev" title="Poprzedni krok (←)">◀</button>
+              <button class="btn-play" id="btn-play" title="Odtwórz / Wstrzymaj (Spacja)">▶ Odtwórz</button>
+              <button class="btn-icon" id="btn-next" title="Następny krok (→)">▶</button>
+              <button class="btn-icon" id="btn-last" title="Koniec">▶|</button>
+            </div>
+            <div class="scrubber-wrap">
+              <input type="range" id="time-scrubber" min="0" max="100" step="0.02" value="0" aria-label="Oś czasu symulacji">
+            </div>
+            <div class="time-readout mono" id="time-readout">t = 0.0 / 0</div>
+            <select id="speed-select" class="speed-select" aria-label="Prędkość odtwarzania">
+              <option value="0.5">0.5×</option>
+              <option value="1" selected>1×</option>
+              <option value="2">2×</option>
+              <option value="4">4×</option>
+              <option value="8">8×</option>
+            </select>
+            <button class="btn-mini" id="btn-toggle-dock" title="Zwiń lub rozwiń panel analityczny">▾ Wykresy</button>
+          </div>
+
+          <div class="analytics-body" id="analytics-body">
+            <div class="analytics-tabs" role="tablist">
+              <button class="tab-btn active" data-tab="gantt" role="tab">Oś zadań (Gantt)</button>
+              <button class="tab-btn" data-tab="coverage" role="tab">Pokrycie mapy</button>
+              <button class="tab-btn" data-tab="quality" role="tab">Jakość / Referencja</button>
+              <button class="tab-btn" data-tab="altitude" role="tab">Profil wysokości</button>
+              <span class="tab-hint">Kliknij lub przeciągnij wykres, aby przewinąć czas</span>
+            </div>
+            <div class="analytics-canvas-wrap">
+              <canvas id="analytics-canvas"></canvas>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Telemetry Sidebar -->
+      <aside class="sidebar" aria-label="Telemetria misji">
+        <div class="mission-banner">
+          <div class="overline">Aktywna misja</div>
+          <h1 id="mission-title">Ładowanie…</h1>
+          <div class="mission-meta mono" id="mission-meta">—</div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Pokrycie</span>
+            <strong class="kpi-val mono" id="kpi-coverage">—</strong>
+            <span class="kpi-sub" id="kpi-coverage-sub">obserwowane pola</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label" id="kpi-quality-label">Dokładność</span>
+            <strong class="kpi-val mono" id="kpi-quality">—</strong>
+            <span class="kpi-sub" id="kpi-quality-sub">vs referencja offline</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Pomiary</span>
+            <strong class="kpi-val mono" id="kpi-captures">—</strong>
+            <span class="kpi-sub" id="kpi-captures-sub">ukończone / łącznie</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Czas / Krok</span>
+            <strong class="kpi-val mono" id="kpi-time">—</strong>
+            <span class="kpi-sub" id="kpi-time-sub">stan symulacji</span>
+          </div>
+        </div>
+
+        <section class="side-section">
+          <div class="section-head">
+            <h2>Flota robotów</h2>
+            <span class="badge mono" id="fleet-count">0</span>
+          </div>
+          <div id="fleet-list" class="fleet-list"></div>
+        </section>
+
+        <section class="side-section">
+          <div class="section-head">
+            <h2>Aktywność pomiarów</h2>
+            <span class="badge mono" id="events-count">0</span>
+          </div>
+          <div id="events-list" class="events-list"></div>
+        </section>
+
+        <details class="side-section comm-section">
+          <summary>Komunikacja i metadane</summary>
+          <p id="comm-status" class="muted"></p>
+          <pre id="comm-payload" class="mono" hidden></pre>
+        </details>
+      </aside>
+    </div>
+  </div>
+
+  <div id="drop-overlay" class="drop-overlay" hidden>
+    <div class="drop-box">Upuść plik JSON (<code>scout-replay-v1</code>), aby otworzyć w SCOUT Studio</div>
+  </div>
+
+  <script type="module" src="./studio.mjs"></script>
+</body>
+</html>

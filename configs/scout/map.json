@@ -1,0 +1,12 @@
+{
+  "type": "agri",
+  "width": 80,
+  "height": 60,
+  "cell_size_m": 0.5,
+  "seed": 42,
+  "shares_pct": {
+    "exposed_soil": 55,
+    "gravel": 10,
+    "low_vegetation": 35
+  }
+}

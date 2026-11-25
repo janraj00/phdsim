@@ -1,5 +1,9 @@
 # PHDSIM project context
 
+On branch `scout`, the active work is the synthetic SCOUT pilot. Also read
+`docs/SCOUT.md`. The inherited October PST900/UrbanIng sections are historical,
+not current UrbanIng status. Keep generated outputs in ignored `runs/` paths.
+
 Read `docs/CONTEXT.md` before continuing research or implementation. It records
 the latest user decisions, verified experiment state and next work. Use
 `README.md` for entry points and `docs/MIGRATION.md` for machine setup and external

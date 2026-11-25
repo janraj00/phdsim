@@ -134,3 +134,14 @@ combine it with the local prediction.
 
 The earlier `phdsim <presence-command>` syntax and `scripts/run.ps1` are retained
 as compatibility entry points. New commands should specify the workflow explicitly.
+
+
+## SCOUT pilot modules (2026-11-11)
+
+The SCOUT branch uses domain-owned packages rather than a single `scout/`
+implementation. See [the module map and information flow](SCOUT.md#module-map-after-the-responsibility-based-refactor).
+`simulation/` executes the scenario; `experiments/scout/` composes components
+and records results. Hidden truth is restricted to environment simulation and
+offline evaluation. Sensor capture, communication delivery, belief fusion,
+navigation and acquisition remain separate responsibilities. The old
+`phdsim.scout` namespace is only a command alias.

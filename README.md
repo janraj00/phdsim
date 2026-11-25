@@ -1,5 +1,24 @@
 # PHDSIM
 
+## SCOUT branch: active synthetic pilot
+
+Run the standalone 2D rover/drone experiment with Python 3.11+ and the standard
+library only (no PSTNet/UrbanIng installation needed):
+
+```sh
+PYTHONPATH=src python3 -m phdsim.cli scout \
+  --config configs/scout/pilot.json --compare --output runs/scout-first
+```
+
+The macOS system Python may be too old. See [SCOUT instructions and
+limitations](docs/SCOUT.md) for the tested interpreter and experiment protocol.
+The [SCOUT elevation benchmark](docs/SCOUT_ELEVATION.md) compares a fixed
+measurement schedule with adaptive replanning for two drones and a rover.
+The pilot also supports [offline counterfactual label collection](docs/SCOUT_LABELS.md)
+with `--collect-labels --decision-ticks 0 8 16 --max-candidates 6`.
+The following sections describe the inherited October research snapshot, not
+the latest UrbanIng work in the separate active workspace.
+
 A research framework for **selective acquisition of existing peer observations**.
 An agent uses its available observations to decide whether to request additional
 observations from another agent. Perception, fusion and acquisition decisions are

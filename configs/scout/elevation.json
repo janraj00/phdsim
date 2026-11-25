@@ -1,0 +1,9 @@
+{
+  "time_budget": 60,
+  "aerial_energy": 90,
+  "ground_energy": 40,
+  "tolerance_m": 0.25,
+  "confidence": 0.9,
+  "coverage": 0.85,
+  "poor_probability": 0.3
+}
