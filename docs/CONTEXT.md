@@ -1,8 +1,308 @@
 # PHDSIM research handoff
 
-Updated: **2026-11-09**. This document summarizes the latest decisions in the
+Updated: **2026-11-11**. This document summarizes the latest decisions in the
 project conversation. Earlier explanations in the
 [conversation archive](CHAT_HISTORY_2026-10-19.md) include superseded assumptions.
+
+## Thermal 3D extension completed; negative efficiency result (2026-11-11)
+
+User returned COMPLETED21710831 with frozen thermal threshold.01 on1400
+crossing3 frames. Against original selective LiDAR: Pedestrian AP4.6987675%
+->4.7241890%, TP1530 ->1551, FP13773 ->13972, FN6778 ->6757, GT8308.
+Net +21TP,+199FP,zero newly lost selected matches; only3 of155 previous
+all-vs-selected lost appearances recovered(1.94%). Other18 additions were
+also absent from all-LiDAR baseline. All LiDAR retains PedAP5.4957327%,
+TP1622,FP13275. Macro AP33.5872166% ->33.5935720%(+.006355pp), versus
+all33.7101635%. Other classes remain selected baseline by enforced invariant.
+Counts are repeated appearances, not unique persons. No significance claim.
+
+Returned payload footprint: ALL native LiDAR5,326,114,866bytes; selected
+4,944,793,220; additional7482 thermal JPEG views across1247 frames add
+376,256,530. LiDAR saving381,321,646bytes is98.67% consumed; hybrid
+5,321,049,750bytes leaves only5,065,116bytes(0.0951%) below ALL. These are
+serialized source-payload footprints INCLUDING ego, not measured feature/
+network bandwidth. LiDAR queries2033 ->1691 remain, with additional thermal
+modality/view requests. Added stage wall times sum~1797s including read/ground,
+image preparation, inference,localization,fusion; cached LiDAR inference means
+no end-to-end compute/energy saving is established. Do not double-count the
+separately reported fusion+offline evaluation timing as fusion-only overhead.
+
+**Close this tested thermal extension as an informative negative efficiency
+result; no further training/threshold search is part of this experiment.**
+Marginal recovery and nearly erased native-payload savings do not support a
+useful benefit of this configuration. This does not refute other thermal
+models/localization/fusion methods or the independent selective-LiDAR result.
+Retrospective already-inspected crossing3, not a blind test.
+
+New run values are user-pasted, not independently downloaded by assistant.
+Exact baseline counts/AP were reconstructed from locally verified historical
+cost-sweep and object-audit artifacts. The submitted worker writes COMPLETED
+only after baseline/GT/action parity, written-hybrid replay and155/63 identity
+checks. Remote output `phdsim-work/phdsim/runs/thermal-lidar3d-21710831/`.
+Archive16,112,842bytes; user-returned SHA256
+`806cd755ad17e93aa5cfc314d31ea4c1ed2e9f2dafdd5423c8e9f02ee24eec2f`.
+`../../research/thermal-lidar-3d-2026-11-11/RESULTS.md` and
+`USER_RETURNED_RESULT.json` record final class tables, arithmetic and limits.
+Original13-file submitted package stays hash-identical; new `collect.sh` is
+user-run optional local archival and SHA/CRC/count/source verification. Do not
+claim its archive hash independently verified until user executes collection.
+Continue respecting user workflow: assistant prepares/analyzes locally; user
+runs SSH/uploads/jobs. No Ares access by assistant in this follow-up.
+
+## Thermal threshold sweep returned; 3D bridge prepared locally (2026-11-11)
+
+User returned threshold replay with original AP/TP/FP/FN/ignore parity PASSED.
+Strict TP/FP: confidence.01=766/397,.025=700/283,.05=665/210,.075=634/179,
+.1=622/159,.15=581/127,.2=546/99,.25=519/78,.35=479/51,.5=396/25,
+against3789 per-camera weak positives. Ignore-aware TP identical and FP
+360/262/200/173/154/122/94/73/46/21. These remain user-returned results.
+
+Implemented isolated `../../research/thermal-lidar-3d-2026-11-11/` with
+`bridge.py`, GT-free `localization.py`, separate `fusion.py`, source/canonical
+scorer adapters, tests and Slurm/submit scripts. User command on Mac:
+`bash /Users/janek/Doktorat/research/thermal-lidar-3d-2026-11-11/submit.sh`.
+It uploads a fresh remote `phdsim-work/phdsim-thermal-lidar3d-20261111-001`
+and submits8CPU/24GiB/24h ceiling. **No Ares access/upload/job by assistant**
+in this follow-up. Remote runtime/checkpoint/full evaluation remain untested;
+no3D benefit claim. Continue giving commands for user to execute.
+
+Frozen YOLO11n21710164; no retraining. Validation200 candidates.01/.05/.25;
+maximize selective+thermal Pedestrian BEV AP@.5, ties prefer higher confidence;
+write FROZEN.json before loading crossing3_1400 baseline caches. Paired full
+ALL LiDAR / same geometry-top10 cost.2 choices / same choices+thermal. Thermal
+images requested iff Infra LiDAR retained. Retained raw point streams are
+allowlisted before reading arrays, so omitted Car2/Infra points cannot supply
+depth. Native time/pose,8cm voxels, observed RANSAC ground, frustum BEV clusters,
+TRAIN-only median dimension priors and2D reprojection checks create3D proposals.
+No GT enters proposal/fusion inference. Add only pedestrians; preserve LiDAR
+boxes; reject overlapping additions at BEV IoU>.2. Pedestrian ranks consistently
+LiDAR-first (.5+.5*score vs .49*thermal) on every frame, including no additions;
+other classes unchanged. Raw scores saved separately. Report new/lost matches.
+
+Pinned converter R3@R1 is an XY swap, not identity. Actual converter SHA equals
+earlier audit56bb288d...c51010. Local synthetic source/geometry/depth/NMS/rank
+tests passed. Real native TRAIN crossing1 frames1/100/200, excludingCar2, passed
+native/canonical center QA (<.005mm max), observed ground and clustered-depth
+support. GT rectangles were used only in this explicit geometry QA, not as
+detector predictions. Actual evaluation/NPZ-save/replay path on native TRAIN
+with zero thermal detections reproduces original metrics exactly. Tests/code
+and source fingerprints are in the new package/README/native-train-qa.json.
+
+Final job validates historical full PedTP1622/1530, queries2033/1691,155 losses/
+63 recoveries, canonical per-frame Ped matcher and written hybrid metric replay.
+It reports class AP/counts, recovered misses, newly lost matches, native NPZ+
+additional JPEG payload footprint and additional module timings. Bytes are a
+serialized sensor-payload proxy, not measured feature/network traffic; cached
+LiDAR inference does not establish end-to-end compute/energy savings. Existing
+crossing3 is retrospective, not blind. Experiment closes only after the user
+runs this package and returns actual final metrics, or a concrete failure is
+diagnosed and resolved. README has outputs/log paths and full limitations.
+
+## Thermal 2D finished; threshold sweep and 3D closure requested (2026-11-11)
+
+User submitted21710164 and returned COMPLETED logs for all8 epochs and both
+validation passes. User-reported strict2D AP@.5:12.16% ->20.18%; GT3789,
+TP435 ->519, FP527 ->78, FN3354 ->3270 at confidence.25. Ignore-aware
+AP12.31% ->20.44%, FP482 ->73, same TP/FN. Not independently downloaded in
+this follow-up; labels remain weak projected camera appearances. No3D benefit
+yet established. User explicitly requests: check lower confidence thresholds,
+then integrate into main detection and close the experiment. **User executes
+SSH/uploads/jobs; assistant supplies commands and analyzes returned output.**
+Do not access Ares or submit jobs independently under this workflow.
+
+Prepared stdlib-only `threshold_sweep.py` in the thermal pilot directory.
+Replays saved final validation predictions; checks manifest/view bindings and
+parity with original AP/counts before thresholds.01,.025,.05,.075,.1,.15,.2,
+.25,.35,.5; writes JSON/CSV with provenance. No inference/fitting/automatic
+threshold selection. Synthetic tests and parity with saved native2-image
+preflight metrics passed locally; full validation replay awaits user execution.
+`CLOSING_PROTOCOL.md` records remaining3D localization from retained LiDAR,
+development-only fusion choices, frozen all-LiDAR / selective / same-selective
++thermal comparison, class counts/AP and actual additional thermal costs.
+3D integration remains unimplemented; do not claim experiment is closed yet.
+
+## Thermal pedestrian 2D pilot deployed; user will launch training (2026-11-10)
+
+User requested a ready Ares command and explicitly intends to start the run.
+Prepared an isolated YOLO11n thermal-only end-to-end pedestrian pilot at
+`../../research/thermal-pedestrian-2d-2026-11-10/`; remote directory:
+`phdsim-work/phdsim-thermal-ped2d-20261110-001`. Launch on Ares:
+`sbatch -A plgkgacq-cpu /net/pr2/projects/plgrid/plggkgteam/plgrajczykjan/phdsim-work/phdsim-thermal-ped2d-20261110-001/thermal_ped2d.sbatch`.
+Eight fixed epochs, AdamW 1e-4, batch4, native640x480 rectified thermal repeated
+to3 channels and padded to640 square. COCO person0 retained; other79 logits
+excluded from classification loss and decoding. All network weights train
+except fixed DFL projection. No RGB RPN or 3D fusion. Final epoch only, no
+validation selection; initializer/final evaluated after fitting. Requests8CPU,
+24GiB,24h scheduler ceiling, not ETA. Existing container/private torchvision
+dependencies reused read-only; pinned Ultralytics8.3.221/thop isolated locally.
+
+Immutable associations retain original TRAIN400/validation200 recording split;
+crossing3 never read. Full native scene labels projected into every associated
+thermal view, avoiding LiDAR-ROI-clipped labels as false background. Small,
+truncated and near-plane objects are ignored for background gradients, while
+positive targets take priority. Labels remain weak projections without
+camera-specific visibility truth. Native camera offsets +8..+41ms preserved.
+Prepared2200/1000 train/validation camera views,3867/3789 positive boxes and
+1425/1201 ignore boxes. Counts are repeated per-camera appearances, not unique
+persons or directly comparable LiDAR3D GT counts. Strict and ignore-aware2D
+AP@.5/.75 and fixed-scoreTP/FP/FN reported; AP uses all-point precision envelope,
+not COCO mAP or BEV AP. No recovery of LiDAR misses is established.
+
+Nontraining preflight21705367 COMPLETED in7m,exit0: data hashes/splits, native
+NMS, projection/matching/ignore-gradient tests, finite real2-image loss, nonzero
+backbone/actual box+person head gradients, exact save/reload, inference/report
+path. Zero optimizer steps; gate model/BN changes discarded. Final package
+and runtime test21705831 passed; sbatch --test-only accepted main script.
+Manifest SHA256 `cfd81c48d589ff0390c165c563a59d4a297638792f2e4658df9e49b0815f5484`
+matches downloaded evidence; fixed label previews inspected. **Main training
+not submitted by assistant**; user has the command. No improvement claim.
+See pilot README,package.json,evidence/. Subsequent useful-detector stage is
+localization with retained LiDAR and paired3D comparison under identical frozen
+selection, including thermal costs; not implemented by this package.
+
+## Pedestrian improvement: box calibration did not help (2026-11-10)
+
+User asked to improve pedestrian detection. Cheap baseline FN audit found:
+6686 full-fusion pedestrian misses,of which633 have a same-class candidate
+IoU.3–.5,191 at.1–.3,and5862 below.1. Ares21704380 COMPLETED in1m43s,
+exit0:test global Pedestrian XY box-size scales.6/.8/1/1.2/1.4,preserve
+center/Z/score/other classes,select on validation200 before full1400 replay.
+Validation APs:.0306/3.2435/7.7517/7.4084/2.9261%;identity1.0 wins.
+No modification applied;full/selected pedestrian AP remain5.4957/4.6988%.
+TRAIN400 original Pedestrian AP46.5580% versus validation7.7517% signals a
+context/generalization gap,not a demonstrated unique cause. No training or
+detector inference. Original score threshold,NMS and GT/IoU metric retained.
+Identity per-frame statistics and development AP parity passed;archive CRC,
+download and submitted-code hashes checked. ZIP9677bytes,SHA256
+`8c5d3d48f6ff496ca8b4a6d887259c0f06b27eb01947ffe566e23465e4e96796`.
+Details:`../../research/urbaning-pedestrian-calibration-2026-11-10/README.md`.
+Do not repeat this global box-scale grid or claim it improved anything.
+Next justified hypotheses:adapt the LiDAR pedestrian detector with balanced
+TRAIN/recording-level validation,or train a genuinely working thermal2D
+pedestrian detector with explicit remaining-LiDAR localization. No new
+detector/thermal training job submitted and no improvement is established.
+
+## Source-omission pedestrian comparison: interpretation (2026-11-10)
+
+User asked what can be inferred from143/535 losses after Car2 omission versus
+12/14 after Infra omission. Verified exact contexts:Car2 is omitted on322
+frames;535 baseline Pedestrian detections cover22 sequence-track IDs,median
+distance32.6m,and143 losses cover16 IDs. Infra is omitted on20 frames;all14
+baseline Pedestrian detections cover only3 IDs in0010_crossing3_09,median
+72.6m,and12 losses affect those3 IDs. No causal source ranking follows from
+these unequal contextual subsets. Preserve this limitation when presenting
+the85.7% versus26.7% rates. The main supported result is class-dependent
+quality/cost tradeoffs hidden by macro mAP;thermal remains a proposed recovery
+hypothesis,not a measured benefit. Added details to object-audit REPORT.md.
+
+## User-proposed thermal pedestrian support hypothesis (2026-11-10)
+
+After the object-loss audit,user proposed thermal to compensate pedestrian
+losses from selective LiDAR. This is a hypothesis,not a trained/implemented
+extension.143/155 Pedestrian lost appearances at cost.2 occur when Car2 is
+omitted but infrastructure LiDAR is retained. Read-only Ares inventory found
+calibration and all six thermal image streams for all seven crossing3 clips.
+No FOV/visibility/thermal detector recovery claim follows from availability.
+Proposed paired comparison:ALL LiDAR;fixed selective LiDAR;EXACT SAME selected
+LiDAR plus thermal evidence. Train a working thermal2D detector and retain
+explicit LiDAR-assisted localization,not another frozen-RGB-RPN3D head pilot
+(21696510 had zero Pedestrian TP). Account for thermal payload/inference cost;
+never use the known155 GT losses as an online selection rule. No new model
+training/fusion job submitted. Details:
+`../../research/urbaning-lidar-loss-audit-2026-11-10/THERMAL_HYPOTHESIS.md`.
+
+## Object-level LiDAR loss audit completed (2026-11-10)
+
+User requested where losses occur and which objects are affected. Ares
+job21703950 COMPLETED in7m31s,exit0. It reconstructs exact class-wise greedy
+BEV matches for every needed baseline/selected action on1400 frozen frames;
+2127 action sets match original TP/FP/score/GT arrays at IoU.3/.5/.7.
+All61739 evaluated GT appearances bind uniquely to native class/track IDs
+within1mm; maximum center error.0151mm.3433 converted source YAML hashes
+verified; native per-agent point_cloud_hits retained as offline support.
+No model inference, training, threshold/policy change or raw LiDAR processing.
+
+At existing geometry/top10 cost.2, lost/recovered appearances versus ALWAYS:
+Vehicle419/253(AP-.4786pp),Heavy_Vehicle19/81(+1.4795pp),
+2Wheeler50/21(-.6957pp),Pedestrian155/63(-.7970pp). Total643 lost,
+418 recovered,net225 fewer TP and1508 more FP. Pedestrian loses155/1622
+baseline-detected appearances(9.56%),with498 extra FP; heavy improvements
+mask other-class losses in macro AP. All50 two-wheeler losses are Cyclist;
+Motorcycle baseline support is only15 matched appearances.
+
+Pedestrian losses include72/560 baseline detections at20–40m(12.86%);
+median lost-pedestrian distance34.1m. Cyclists at80–100m lose12/92(13.04%).
+Pooled retained support0:82/104 baseline detections lost;1–4:136/1287;
+500+:22/12718.329/643 losses have<20 retained hits,but112 still have>=100;
+point support is not causal occlusion proof.547 losses follow Car2 omission,
+96 Infra omission; denominators/action frequencies differ.463 losses have
+no same-class candidate at IoU.3,and180 have overlap.3–.5; no greedy
+competition losses at IoU>=.5. These categories do not identify earlier
+proposal/classification/NMS causes.
+
+Losses involve117 sequence-scoped track IDs(17 Pedestrian) out of545;
+counts are repeated appearances,not independent or globally unique objects.
+Full all-cost class/FP tables,strata,track/event CSVs,and verified BEV examples:
+`../../research/urbaning-lidar-loss-audit-2026-11-10/REPORT.md` and`results/`.
+Archive5,534,205bytes,SHA256
+`d0e8c3d39beb4f5732985e2b3cb5fbeaa49d9ea9ba9459f735124cec065ceaf4`;
+CRC,payload and worker hashes verified after download. Diagnostic metadata
+are offline GT only; no new class-aware or abstention policy was fitted.
+
+## Full LiDAR cost sweep completed on Ares (2026-11-09)
+
+User authorized Ares execution. Job21699480 COMPLETED in4m28s, exit0:three
+frozen profiles, costs0..1 by0.1, validation200 plus crossing3_1400,100-seed
+exact-budget random controls and five original recording-group outputs.
+All18 historical action vectors and c=0/.5 full metrics reproduced; baseline
+AP parity is exact on Ares. No fitting, model inference or environment edits.
+Downloaded archive SHA256
+`caec218528bd8761a24ac66faa8e11dcd0f3cfdcee81e09f1b48833c845c1810`
+(13,588,017 bytes), CRC and normalized-score hash verified locally.
+
+Full1400 geometry/top10: ALWAYS33.710163%/2033 queries;c=0:
+33.674104%/1813(10.82% saved);c=.2:33.587217%/1691(16.82% saved,
+.122947pp macro loss);c=.5:32.696586%/1448(28.78% saved);c=1:
+32.219944%/1306(35.76% saved). At c=0,220 frames omit one of two peers,
+but zero frames abstain fully despite availability;89 none frames have no
+peer. Full abstention begins at c=1 with7 frames. Macro stability hides class
+losses:Pedestrian AP ALWAYS5.4957%,c=0 4.9620%,c=.2 4.6988%.
+
+See `../../research/urbaning-lidar-abstention-2026-11-09/ARES_RESULTS.md` and
+its `ares-21699480/extracted/results/` for CSV/JSON/PDF/PNG. Full normalized
+frozen spatial scores and bindings are now available locally in that extraction;
+the earlier missing-score limitation is resolved. Points remain retrospective
+on previously inspected recordings, with no new blind-test/selection claim.
+Remote isolated submit directory:`phdsim-work/phdsim-lidar-cost-sweep-20261109-001`;
+output:`phdsim-work/phdsim/runs/urbaning-lidar-cost-sweep-21699480`.
+
+## LiDAR zero-cost abstention and 0.1 cost sweep (2026-11-09)
+
+User requested separate evidence that declining available LiDAR observations
+can improve quality even at zero acquisition cost, plus a cost sweep in 0.1
+increments. Completed a local frozen replay in
+`../../research/urbaning-lidar-abstention-2026-11-09/`; see its `FINDINGS.md`.
+On development validation200, geometry/top10 c=0..1 by0.1 gives c=.4:
+294/334 queries (11.98% saved),37.1235% mAP@.5 vs ALWAYS37.6015%; c=.5:
+271 queries,36.0361% (historical point reproduced). All three existing profiles
+choose ALWAYS at c=0 here: no demonstrated learned zero-cost abstention.
+
+Separate exhaustive offline single-frame interventions on crossing3 show152
+of1311 available-peer frames improve pooled mAP@.5 when ONLY that frame
+switches from ALWAYS to ego;1154 worsen and5 are within0.0001pp tolerance.
+Validation has33/200 positive marginal omissions. These use GT outcomes,
+keep all OTHER frames at ALWAYS, and are NOT deployable policy performance,
+additive gains, or an independently selected test. They show opportunities,
+not a trained gate. The FP+FN-minimizing oracle reduces requests but lowers
+mAP, exposing objective mismatch. Full1400 outcomes were available locally,
+but full frozen spatial scores from21586593 were not; crossing3 cost curve
+remains uncomputed. Do not interpolate older c=0/.5 summaries into a curve.
+
+Verified archive CRC/hashes, frame/availability bindings, four baseline APs
+in both orders, historical geometry c=.5,100-seed exact-budget random counts,
+and monotonic requests. Baseline AP residual <=2.481e-7 (cross-platform tied
+score ordering); maximum tolerance5e-7. Isolated NumPy1.26.4 under research
+runtime; shared environment/source archives unchanged. No fitting/inference.
 
 ## Thermal pilot: local projection audit (2026-11-08)
 
