@@ -21,14 +21,23 @@ class RoverAssignment:
 
 
 class SelectiveRoverPlanner:
-    def __init__(self, plot: Plot, rovers: tuple[SweepRobot, ...], deadline: int):
+    def __init__(
+        self,
+        plot: Plot,
+        rovers: tuple[SweepRobot, ...],
+        deadline: int,
+        *,
+        min_rgb_entropy: float = MIN_RGB_ENTROPY,
+        rover_footprint: tuple[int, int] = ROVER_FOOTPRINT,
+    ):
         self.plot = plot
         self.rovers = {rover.agent_id: rover for rover in rovers}
         self.deadline = deadline
+        self.min_rgb_entropy = min_rgb_entropy
         self.positions = {rover.agent_id: rover.start_xy for rover in rovers}
         self.energy_reserved = dict.fromkeys(self.rovers, 0.0)
         self.remaining = {site: footprint_indices(site.footprint, plot.width)
-                          for site in regular_sites(plot, ROVER_FOOTPRINT)}
+                          for site in regular_sites(plot, rover_footprint)}
 
     def dispatch(self, tick: int, rgb: tuple[Prediction | None, ...], lidar: tuple[Prediction | None, ...],
                  pending: tuple[tuple[str, tuple[int, int, int, int]], ...]) -> list[RoverAssignment]:
@@ -42,7 +51,7 @@ class SelectiveRoverPlanner:
         free = [rover for rover in self.rovers.values() if rover.agent_id not in busy]
         assignments = []
         while free and self.remaining:
-            gains = {site: sum(weights[i] for i in cells if weights[i] >= MIN_RGB_ENTROPY)
+            gains = {site: sum(weights[i] for i in cells if weights[i] >= self.min_rgb_entropy)
                      for site, cells in self.remaining.items()}
             assignment = self._best_assignment(tick, free, gains)
             if assignment is None:

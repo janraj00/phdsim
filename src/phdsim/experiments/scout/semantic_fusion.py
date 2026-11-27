@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from phdsim.belief.semantic_terrain import (
-    MODES, Capture, CellFeatures, Grid, Sample, TerrainClassifier, extract_features,
+    MODES, Capture, CellFeatures, Grid, Sample, SemanticEstimator, TerrainClassifier, extract_features,
 )
 from phdsim.core.randomness import keyed_rng
 from phdsim.evaluation.semantic_terrain import semantic_metrics
@@ -57,7 +57,7 @@ def make_fixture(seed: int) -> Fixture:
     return Fixture(grid, (camera, scanner, camera), tuple(reference), tuple(hard))
 
 
-def compare_observations(grid: Grid, captures: tuple[Capture, ...], model: TerrainClassifier):
+def compare_observations(grid: Grid, captures: tuple[Capture, ...], model: SemanticEstimator):
     """Runtime entry point. The caller supplies only available captures in a common grid frame."""
     features = extract_features(grid, captures)
     return {mode: model.predict(features, mode) for mode in MODES}

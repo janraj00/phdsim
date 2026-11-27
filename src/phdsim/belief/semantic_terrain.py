@@ -3,13 +3,23 @@
 from dataclasses import dataclass
 from math import exp, fsum, isfinite, log, sqrt
 from statistics import fmean, pvariance
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Protocol, runtime_checkable
 
 from phdsim.core.grid import Cell
 
 
 Mode = Literal["rgb", "lidar", "fused"]
 MODES: tuple[Mode, ...] = ("rgb", "lidar", "fused")
+
+
+@runtime_checkable
+class SemanticEstimator(Protocol):
+    """Plug-in interface for semantic terrain classifiers operating on registered cell features."""
+
+    classes: tuple[str, ...]
+
+    def predict(self, cells: Iterable["CellFeatures"], mode: Mode) -> tuple["Prediction | None", ...]:
+        ...
 
 
 @dataclass(frozen=True)

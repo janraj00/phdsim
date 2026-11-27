@@ -8,8 +8,9 @@ import json
 from math import ceil, dist
 from pathlib import Path
 
+from phdsim.belief.semantic_gmm import JointGMMClassifier
 from phdsim.belief.semantic_terrain import (
-    MODES, Capture, Grid, Mode, Prediction, Sample, TerrainClassifier, extract_features,
+    MODES, Capture, Grid, Mode, Prediction, Sample, SemanticEstimator, TerrainClassifier, extract_features,
 )
 from phdsim.core.grid import Cell
 from phdsim.decision.acquisition.semantic import (
@@ -118,7 +119,18 @@ def observe(fields, task: Task, seed: int, conditions: CaptureConditions) -> tup
     return tuple(captures)
 
 
-def fit_classifier(config: TerrainConfig, fit_seeds: tuple[int, ...]) -> TerrainClassifier:
+CLASSIFIERS = ("gaussian", "gmm")
+
+
+def fit_classifier(
+    config: TerrainConfig,
+    fit_seeds: tuple[int, ...],
+    *,
+    classifier: str = "gaussian",
+    gmm_components: int = 3,
+) -> SemanticEstimator:
+    if classifier not in CLASSIFIERS:
+        raise ValueError(f"unknown classifier {classifier!r}; expected one of {CLASSIFIERS}")
     grid = Grid(config.width, config.height, config.cell_size_m)
     plot = Plot(config.width, config.height, config.cell_size_m)
     sites = regular_sites(plot, (7, 7))
@@ -130,7 +142,10 @@ def fit_classifier(config: TerrainConfig, fit_seeds: tuple[int, ...]) -> Terrain
             task = Task("training-pair", site.xy, site.footprint, tick - 1, tick, ("rgb", "lidar"), 3.0)
             captures.extend(as_capture(o) for o in observe(terrain.fields, task, seed, CaptureConditions()))
         examples.extend(zip(class_labels(terrain), extract_features(grid, captures), strict=True))
-    return TerrainClassifier.fit(tuple(cls.name for cls in config.classes), examples)
+    classes = tuple(cls.name for cls in config.classes)
+    if classifier == "gmm":
+        return JointGMMClassifier.fit(classes, examples, n_components=gmm_components)
+    return TerrainClassifier.fit(classes, examples)
 
 
 def initial_drones(plot: Plot) -> tuple[SweepRobot, ...]:
@@ -193,7 +208,7 @@ def fixed_tasks(plot: Plot, *, include_drones: bool = True,
 
 def replay_tasks(
     grid: Grid,
-    model: TerrainClassifier,
+    model: SemanticEstimator,
     agents: list[dict],
     tasks: list[Task],
     capture_task: Callable[[Task], tuple[Capture, ...]],
@@ -250,7 +265,7 @@ def replay_tasks(
     return frames, captures, predictions
 
 
-def selective_rover_replay(grid: Grid, plot: Plot, model: TerrainClassifier, fov_deg: float,
+def selective_rover_replay(grid: Grid, plot: Plot, model: SemanticEstimator, fov_deg: float,
                            capture_task: Callable[[Task], tuple[Capture, ...]]):
     drones = initial_drones(plot)
     rovers = tuple(SweepRobot(f"rover-{i}", drone.start_xy, 0.7, 2, 0.4, 1, 65)
@@ -286,7 +301,7 @@ def selective_rover_replay(grid: Grid, plot: Plot, model: TerrainClassifier, fov
     return agents, frames, captures, predictions, summary
 
 
-def semantic_replay(seed: int, model: TerrainClassifier, config: TerrainConfig, *,
+def semantic_replay(seed: int, model: SemanticEstimator, config: TerrainConfig, *,
                     aerial: AerialSettings | None = None,
                     fixed_fov_deg: float = DEFAULT_DRONE_FOV_DEG,
                     selective_rovers: bool = False) -> tuple[dict, dict]:
@@ -375,6 +390,10 @@ def main(argv=None):
                         help="Shared horizontal and vertical field of view of drone sensors (default: %(default)s)")
     parser.add_argument("--cell-size-m", type=float, default=TerrainConfig.cell_size_m, metavar="METRES",
                         help="Terrain cell side length in metres at a fixed grid size (default: %(default)s)")
+    parser.add_argument("--classifier", choices=CLASSIFIERS, default="gaussian",
+                        help="Plug-in semantic classifier backend (default: %(default)s)")
+    parser.add_argument("--gmm-components", type=int, default=3, metavar="K",
+                        help="Mixture components per class when --classifier gmm is selected (default: %(default)s)")
     args = parser.parse_args(argv)
     combined = (*args.fit_seeds, *args.test_seeds)
     if len(set(combined)) != len(combined):
@@ -385,10 +404,15 @@ def main(argv=None):
             altitudes_m=tuple(args.drone_altitudes) if args.drone_altitudes else AerialSettings.altitudes_m,
             fov_deg=args.drone_fov_deg,
         )
+        model = fit_classifier(
+            config,
+            tuple(args.fit_seeds),
+            classifier=args.classifier,
+            gmm_components=args.gmm_components,
+        )
     except ValueError as error:
         parser.error(str(error))
     aerial = settings if args.drone_altitudes else None
-    model = fit_classifier(config, tuple(args.fit_seeds))
     args.output.mkdir(parents=True, exist_ok=False)
     runs = []
     for i, seed in enumerate(args.test_seeds):
@@ -398,9 +422,12 @@ def main(argv=None):
         (args.output / name).write_text(json.dumps(replay, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
         runs.append(summary)
     report = {"fit_seeds": args.fit_seeds, "test_seeds": args.test_seeds,
+              "classifier": args.classifier,
               "flight_model": MODEL_ID, "seconds_per_tick": SECONDS_PER_TICK, "terrain": asdict(config), "runs": runs,
               "drone_fov_deg": settings.fov_deg,
               "scope": "Fixed terrestrial synthetic coverage, immediate sharing, uncalibrated classifier."}
+    if args.classifier == "gmm":
+        report["gmm_components"] = args.gmm_components
     if aerial is not None:
         report["aerial"] = asdict(aerial)
         report["scope"] = "Adaptive drone views, fixed rover schedule, immediate sharing, uncalibrated classifier."

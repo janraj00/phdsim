@@ -1,0 +1,60 @@
+{
+  "name": "bench-2uav-2ugv",
+  "description": "Paired 2-UAV RGB + 2-UGV LiDAR comparison: RGB-only, entropy dispatch, model-agnostic VoI dispatch, and full ground sweep.",
+  "terrain": {
+    "profile": "default",
+    "width": 24,
+    "height": 18,
+    "cell_size_m": 0.5,
+    "patches_per_class": 3,
+    "shade_box": [2, 2, 5, 4]
+  },
+  "seeds": {
+    "fit": {"start": 11, "count": 20},
+    "cal": {"start": 101, "count": 20},
+    "test": {"start": 2001, "count": 30}
+  },
+  "classifier": {
+    "type": "gmm",
+    "params": {"n_components": 3}
+  },
+  "fleet": {
+    "drone_fov_deg": 60.0,
+    "initial_altitude_m": 3.0,
+    "drone_energy_budget": 65.0,
+    "rover_speed_m_per_tick": 0.7,
+    "rover_energy_budget": 65.0,
+    "rover_footprint": [5, 5]
+  },
+  "save_replays_for_seeds": [2001],
+  "variants": [
+    {
+      "name": "rgb_only",
+      "label": "Tylko 2×UAV RGB",
+      "policy": "rgb_only"
+    },
+    {
+      "name": "selective_entropy",
+      "label": "2×UAV + 2×UGV · entropia RGB ≥ 0,6",
+      "policy": "selective_rovers_entropy",
+      "policy_params": {"min_rgb_entropy": 0.6}
+    },
+    {
+      "name": "selective_voi_05",
+      "label": "2×UAV + 2×UGV · VoI (próg 0,5 kom.)",
+      "policy": "selective_rovers_voi",
+      "policy_params": {"min_site_gain": 0.5}
+    },
+    {
+      "name": "selective_voi_10",
+      "label": "2×UAV + 2×UGV · VoI (próg 1,0 kom.)",
+      "policy": "selective_rovers_voi",
+      "policy_params": {"min_site_gain": 1.0}
+    },
+    {
+      "name": "full_ground",
+      "label": "2×UAV + 2×UGV · pełny przejazd",
+      "policy": "full_ground_sweep"
+    }
+  ]
+}
