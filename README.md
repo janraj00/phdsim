@@ -1,188 +1,54 @@
-# PHDSIM
+# PHDSIM — SCOUT Semantic Terrain Mapping Benchmark
 
-## SCOUT branch: active synthetic pilot
+Minimal, zero-dependency Python 3.11+ benchmark for multi-agent semantic terrain mapping and selective cross-modal information acquisition (**2× UAV RGB + 2× UGV LiDAR**).
 
-Run the standalone 2D rover/drone experiment with Python 3.11+ and the standard
-library only (no PSTNet/UrbanIng installation needed):
+> Earlier October PST900/UrbanIng code and November corridors/elevation prototypes were removed from branch `scout` to keep this branch focused and lean; full history remains intact in Git at commit `2f3dc96`.
 
-```sh
-PYTHONPATH=src python3 -m phdsim.cli scout \
-  --config configs/scout/pilot.json --compare --output runs/scout-first
+## Quick start
+
+Run the paired 2×UAV + 2×UGV benchmark (uses Python standard library only):
+
+```bash
+PYTHONPATH=src python3 -m phdsim.cli scout-bench \
+  --config configs/scout/bench_2uav_2ugv.json \
+  --output runs/scout-voi-30seeds
 ```
 
-The macOS system Python may be too old. See [SCOUT instructions and
-limitations](docs/SCOUT.md) for the tested interpreter and experiment protocol.
-The [SCOUT elevation benchmark](docs/SCOUT_ELEVATION.md) compares a fixed
-measurement schedule with adaptive replanning for two drones and a rover.
-The pilot also supports [offline counterfactual label collection](docs/SCOUT_LABELS.md)
-with `--collect-labels --decision-ticks 0 8 16 --max-candidates 6`.
-The following sections describe the inherited October research snapshot, not
-the latest UrbanIng work in the separate active workspace.
+Quick 2-seed showcase with replays exported for SCOUT Studio:
 
-A research framework for **selective acquisition of existing peer observations**.
-An agent uses its available observations to decide whether to request additional
-observations from another agent. Perception, fusion and acquisition decisions are
-separate modules.
-
-The implemented neural task is **five-class RGB/thermal semantic segmentation on
-PST900**. **UrbanIng-V2X** now has a real-sequence importer and inspection catalog;
-cooperative 3D detection, fusion and acquisition on this dataset are the next
-research stage. The earlier whole-frame Survivor-presence experiment remains
-available as a separate baseline.
-
-The agreed target model is **agent -> sensors[] -> timestamped observations**.
-An agent may have multiple sensors and modalities. Vehicles are mobile agents;
-infrastructure sensing stations are static agents. This generalization is a
-design decision, not an implemented UrbanIng replay: the existing v1 allocator
-still assigns one modality and at most one own observation per agent per tick.
-
-## Set up on another computer
-
-Use Python 3.11+ and create a fresh environment in the cloned repository:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -e ".[pstnet-training,urbaning]"
-.\scripts\test.ps1
+```bash
+PYTHONPATH=src python3 -m phdsim.cli scout-bench \
+  --config configs/scout/bench_2uav_2ugv.json \
+  --test-seeds 2004 2021 \
+  --replay-seeds 2004 2021 \
+  --output runs/scout-demo-showcase
 ```
 
-Git contains source, tests, configurations, documentation and attributed upstream
-references. **Datasets, trained weights, local reports and generated workbooks
-are separate files and do not travel with a clone.** See the
-[computer migration guide](docs/MIGRATION.md) for the exact directories to copy,
-path settings and verification commands. Recreate `.venv` instead of copying it.
+List registered classifiers, acquisition policies and terrain profiles:
 
-## Current status
-
-- Original PSTNet RGB and neural fusion architectures, preprocessing, and global
-  pixel-IoU evaluation are implemented and tested against the upstream code.
-- An own RGB pilot has completed: **48 training frames, 24 validation frames,
-  five epochs; 31.21% validation mIoU**, compared with 19.24% for background-only
-  prediction. Segmentation is still weak; hand-drill IoU is zero.
-- Own fusion training and learned acquisition experiments for PSTNet are pending.
-  Their inference and gate-learning code is implemented.
-- Exact reproduction with the authors' checkpoints remains pending: the official
-  checkpoint links checked on 2026-10-17 did not provide the files.
-- One UrbanIng-V2X sequence is downloaded and cataloged: 12 RGB, 6 thermal and 6
-  LiDAR streams, plus two auxiliary navigation streams. Source timing, geometry,
-  annotations and inspection previews are preserved; no detector has been trained.
-
-These pilot results are not the published benchmark result. See
-[experiment status and protocol](docs/EXPERIMENTS.md).
-
-## Data flow
-
-```text
-source data -> observation pool -> agent/tick allocation
-                                  |
-                                  v
-                           local RGB perception
-                                  |
-                           acquisition decision
-                            /              \
-                         stop          request thermal
-                          |                 |
-                      RGB mask       original neural fusion
+```bash
+PYTHONPATH=src python3 -m phdsim.cli scout-bench --list-plugins
 ```
 
-The current PSTNet experiment uses paired RGB-to-thermal acquisition. The general
-multi-agent allocator is exercised by the presence baseline. A policy receives
-local evidence and transfer metadata; reference masks and unrequested peer images
-are excluded. Offline teacher collection is separate from online replay.
+## Architecture
 
-## Repository map
-
-| Location | Purpose |
+| Module | Responsibility |
 |---|---|
-| `src/phdsim/datasets/` | Observations, allocation, PST900 conversion and UrbanIng import |
-| `src/phdsim/perception/` | Image processing, RGB segmentation and supervised training |
-| `src/phdsim/fusion/` | One implementation per fusion method; PSTNet neural fusion |
-| `src/phdsim/decision/` | Acquisition contracts and separate policy implementations |
-| `src/phdsim/learning/` | Offline fusion and acquisition fitting |
-| `src/phdsim/runtime/` | Observation delivery and frozen-model execution |
-| `src/phdsim/experiments/` | Protocol orchestration, caches, comparisons and reports |
-| `src/phdsim/evaluation/` | Separate segmentation and presence metrics |
-| `src/phdsim/models/` | Shared numerical estimators |
-| `src/phdsim/cli/` | Explicit `pstnet`, `presence` and `urbaning` workflows |
-| `configs/pstnet/`, `configs/presence/` | Task-specific settings |
-| `tests/` | Unit, protocol, upstream-parity and integration checks |
-| `third_party/pst900/` | Upstream attribution, license and unchanged test references |
-| `archive/` | Recoverable source snapshots and the original project description |
+| `src/phdsim/environments/semantic_terrain.py` | Seeded synthetic terrain generator and class profiles (`configs/scout/profiles/`). |
+| `src/phdsim/sensors/semantic_terrain.py` | Aerial RGB and ground LiDAR observation models. |
+| `src/phdsim/belief/semantic_terrain.py` | `SemanticEstimator` black-box protocol, multimodal cell belief and factorized baseline. |
+| `src/phdsim/belief/semantic_gmm.py` | Plug-in `JointGMMClassifier` (diagonal EM GMM with exact RGB/LiDAR/fused marginalization). |
+| `src/phdsim/planning/` | Fixed aerial sweep (`coverage_sweep.py`) and X500 trajectory timing (`x500_trajectory.py`). |
+| `src/phdsim/decision/acquisition/` | Footprint helpers (`semantic.py`), entropy rover dispatch (`semantic_rover.py`), and model-agnostic cross-modal VoI dispatch (`semantic_voi.py`). |
+| `src/phdsim/evaluation/semantic_terrain.py` | Offline ground-truth evaluation metrics. |
+| `src/phdsim/experiments/scout/` | Mission simulator (`semantic_mission.py`), config/runner (`bench_config.py`, `bench_runner.py`), provenance (`provenance.py`). |
+| `apps/scout-studio/` | Offline 2D/3D WebGL2 replay visualizer for `scout-replay-v1` JSON files. |
 
-Detailed boundaries and extension rules: [architecture](docs/ARCHITECTURE.md).
-For a source-linked, step-by-step reading session, start with the
-[simulation walkthrough](docs/WALKTHROUGH.md). Run `scripts/walkthrough.ps1` to
-generate an executed trace with current file/line links. PSTNet inspection uses
-synthetic images and randomly initialized architectures; presence uses one real
-test frame and existing trained checkpoints.
+## Tests
 
-## Run on Windows
-
-The launchers prefer a project `.venv`, then the existing environment at
-`D:\Doktorat\Platforma\.venv`, then a compatible installed Python. Configuration
-files contain local data/model paths; adjust them when using another machine.
-
-```powershell
-# Inspect the current environment and checkpoint availability; no training.
-.\scripts\pstnet.ps1 -Action status
-
-# Run the test suite. Training checks use small temporary fixtures.
-.\scripts\test.ps1
-
-# Generate a source-linked walkthrough of both runtime paths.
-.\scripts\walkthrough.ps1
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py" -v
+node --test apps/scout-studio/tests/replay.test.mjs
 ```
 
-Start a new RGB pilot with separate output and model directories:
-
-```powershell
-.\scripts\pstnet.ps1 -Action train-rgb `
-  -TrainingConfig configs\pstnet\rgb_pilot.json `
-  -Output runs\pstnet_rgb_pilot_v2 `
-  -ModelDirectory D:\Doktorat\Platforma\models\pstnet_rgb_pilot_v2
-```
-
-Existing result/model directories are protected from overwrite. Full dataset
-preparation is available through `-Action prepare`. Neural checkpoint loading,
-counterfactual collection, gate fitting and selective replay are documented in
-[PSTNet reproduction and own training](docs/PSTNET_REPRODUCTION.md).
-
-The installed Python CLI uses the same workflows:
-
-```powershell
-phdsim --help
-phdsim pstnet --help
-phdsim presence --help
-phdsim urbaning --help
-```
-
-The tested local stack uses PyTorch 2.14.1 CPU, torchvision 0.29.1, Pillow and
-OpenCV. The RGB trainer expects the checksum-verified ImageNet encoder cache;
-its preparation is described in the training guide.
-
-## Documentation and artifacts
-
-- [Research context and latest decisions for continuing in a new Codex chat](docs/CONTEXT.md)
-- [Computer migration: clone, environment, datasets, models and reports](docs/MIGRATION.md)
-- [Architecture and module responsibilities](docs/ARCHITECTURE.md)
-- [Step-by-step simulation walkthrough and domain type map](docs/WALKTHROUGH.md)
-- [Data formats, file counts and the two preprocessing stages](docs/DATA.md)
-- [Dataset compatibility audit and proposed shared data/storage contract](docs/DATASET_AUDIT.md)
-- [UrbanIng-V2X real sequence import, catalog and geometry inspection](docs/URBANING.md)
-- [Experiment status, pilot interpretation and next research steps](docs/EXPERIMENTS.md)
-- [PSTNet reproduction and own RGB training](docs/PSTNET_REPRODUCTION.md)
-- [Historical presence baseline](docs/PRESENCE_BASELINE.md)
-- [Quality, computation and resource comparisons](docs/RESOURCES.md)
-
-Large data, cached downloads and checkpoints live under `D:\Doktorat\Platforma`.
-`runs/` contains local reports, figures and traces and is Git-ignored. The RGB
-pilot is in `runs/pstnet_rgb_pilot/`; its weights are in
-`D:\Doktorat\Platforma\models\pstnet_rgb_pilot_v1`.
-Historical results and trained weights are retained during repository cleanup.
-
-Transfers currently count image pulls and stored PNG bytes. Movement, physical
-network transport, energy measurement and online policy updates are future work.
-
-PSTNet-derived code retains the upstream GPL-3.0 license and attribution;
-see [the third-party notice](third_party/pst900/NOTICE.md).
+Generated runs belong under the git-ignored `runs/` directory. See [docs/CONTEXT.md](docs/CONTEXT.md) for current pilot findings and next research directions.

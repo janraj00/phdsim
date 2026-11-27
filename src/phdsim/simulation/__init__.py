@@ -1,1 +1,0 @@
-"""Mission scheduling and configuration."""

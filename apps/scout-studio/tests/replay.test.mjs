@@ -4,8 +4,8 @@ import {readFileSync, existsSync} from 'node:fs';
 import {readReplay, sampleState} from '../replay.mjs';
 
 test('rejects invalid schema and points generator config users to generated maps', () => {
-  const cfgPath = new URL('../../../configs/scout/map.json', import.meta.url);
-  assert.throws(() => readReplay(JSON.parse(readFileSync(cfgPath, 'utf8'))), /runs\/scout-map\/map\.json/);
+  const generatorCfg = {type: 'semantic', shares_pct: {rock: 50, gravel: 50}, width: 24, height: 18, seed: 1};
+  assert.throws(() => readReplay(generatorCfg), /runs\/scout-map\/map\.json/);
   assert.throws(() => readReplay({schema: 'unknown'}), /scout-replay-v1/);
 });
 

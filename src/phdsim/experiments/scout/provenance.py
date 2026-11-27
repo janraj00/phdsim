@@ -7,13 +7,25 @@ import subprocess
 
 def source_identity(extra_sources=()):
     root = Path(__file__).resolve().parents[4]
-    package = root/"src/phdsim"
-    folders = ("agents", "belief", "communication", "environments", "planning",
-               "sensors", "simulation", "decision/acquisition", "experiments/scout", "scout")
-    sources = {p for name in folders for p in (package/name).rglob("*.py")}
-    sources.update(package/p for p in ("core/grid.py", "core/randomness.py",
-                   "costs/mission.py", "evaluation/mission.py", "cli/scout.py", "cli/__init__.py"))
-    sources.update(package/p for p in extra_sources)
+    package = root / "src/phdsim"
+    folders = (
+        "belief",
+        "cli",
+        "core",
+        "decision/acquisition",
+        "environments",
+        "evaluation",
+        "experiments/scout",
+        "planning",
+        "sensors",
+    )
+    sources = {
+        p
+        for name in folders
+        if (package / name).is_dir()
+        for p in (package / name).rglob("*.py")
+    }
+    sources.update(package / p for p in extra_sources if (package / p).is_file())
     # Package initializers execute on import too; include them without importing
     # unrelated model stacks to discover the source tree.
     for source in tuple(sources):
